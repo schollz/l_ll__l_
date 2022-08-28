@@ -4,7 +4,10 @@
 Engine_Washmo : CroneEngine {
 
     // Washmo specific v0.1.0
-
+    var synMixer;
+    var busMixer;
+    var synNoise;
+    var busNoise;
     // Washmo ^
 
     *new { arg context, doneCallback;
@@ -13,41 +16,69 @@ Engine_Washmo : CroneEngine {
 
     alloc {
         // Washmo specific v0.0.1
-        SynthDef.new("washmo",{
-            arg timescale=8,attack=0.5,
-            wflo=1, wfhi=10, decay=0, gate=1, wfmax=850;
-            var sound, freqs, envs, rings, numvoices, env, freqind;
-            var iphase=1;
-            var time=timescale;
-            var start=Impulse.kr(0);
-            numvoices = 10;
-            freqs ={
-                Demand.kr(start,0,Drand([ 0, 2, 4, 5, 7, 9, 11 ]))+26+Demand.kr(start,0,Drand([ 0, 12, 24, 36, 48 ]))
-            }!numvoices;
-            freqs=freqs.midicps;
-            rings = {1.0.rand}.dup(numvoices);
-            envs = { EnvGen.kr(Env.linen( rrand(0,timescale*100)/100,
-                rrand(0,timescale*100)/100, (rrand(0,timescale*100)/100*10), rrand(0,100)/100 ) ) }.dup(numvoices);
-            
-            sound = PinkNoise.ar([0.1,0.1]);
-            sound = DynKlank.ar(`[freqs,envs,rings], sound );
-            sound = SelectX.ar(VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7),[sound,LPF.ar(Splay.ar(SinOsc.ar(freqs*2)*envs),1000,4)]);
-            // freqind=ArrayMin.kr(freqs).poll;
-            // //sound=sound+RLPF.ar(Saw.ar(freqind[0]*0.99,freqind[0]*1.005/2),freqind[0]*1.5,0.707,0.05);
-            sound = HPF.ar(sound, 50);
-            
-            6.do{sound = DelayL.ar(sound, 0.8, [0.8.rand,0.8.rand], 1/8, sound) };
-            
-            sound=Pan2.ar(sound,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.5,0.5));
-            sound=sound*0.1;
-            
-            DetectSilence.ar(sound,0.01,2,doneAction:2);
-            Out.ar(0,sound.tanh*EnvGen.ar(Env.perc(attack*timescale,(1-attack)*timescale),doneAction:2));
+        SynthDef("mixer",{
+            arg out,in;
+            var snd=In.ar(in,2);
+            snd = HPF.ar(snd, 50);
+            6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
+            Out.ar(out,snd);
         }).add;
 
+        SynthDef("noise",{
+            arg out;
+            Out.ar(out,PinkNoise.ar([0.1,0.1]));
+        }).add;
+
+
+        SynthDef("klank",{
+            arg out=0,in,timescale=8,attack=0.5,decay=0.5,note=60,ring=0.5;
+            var snd;
+            var start=Impulse.kr(0);
+            var numvoices = 10;
+            var freq=note.midicps;
+
+            var env = EnvGen.kr(Env.linen(
+                rrand(0,timescale*100)/100,
+                rrand(0,timescale*100)/100, 
+                (rrand(0,timescale*100)/100*10), 
+                rrand(0,100)/100 ));
+
+            
+            snd = DynKlank.ar(`[[freq],[env],[ring]], In.ar(in,2) );
+            snd = SelectX.ar(VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7),[snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)]);
+            
+            snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.5,0.5));
+            snd=snd/20;
+            snd=snd.tanh*EnvGen.ar(Env.perc(attack*timescale,decay*timescale),doneAction:2);
+
+            DetectSilence.ar(snd,0.01,2,doneAction:2);
+            Out.ar(out,snd);
+        }).add;
+
+        context.server.sync;
+
+        busMixer=Bus.audio(context.server,2);
+        busNoise=Bus.audio(context.server,2);
+
+        context.server.sync;
+
+        synNoise=Synth.head(context.server,"noise",[\out,busNoise]);
+        synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer]);
+
         // metronome
-        this.addCommand("washmo","ff",{arg msg;
-            Synth.new("washmo",[\timescale,msg[1],\attack,msg[2]]).onFree({"freed!"});
+        this.addCommand("washmo","ffff",{arg msg;
+            var note=msg[1];
+            var timescale=msg[2];
+            var attack=msg[3];
+            var decay=msg[4];
+            Synth.before(synMixer,"klank",[
+                \out,busMixer,
+                \in,busNoise,
+                \note,note,
+                \timescale,timescale,
+                \attack,attack,
+                \decay,decay
+            ]).onFree({"freed!"});
         });
 
         // ^ Washmo specific
@@ -56,7 +87,10 @@ Engine_Washmo : CroneEngine {
 
     free {
         // Washmo Specific v0.0.1
-
+        synMixer.free;
+        synNoise.free;
+        busNoise.free;
+        busMixer.free;
         // ^ Washmo specific
     }
 }
