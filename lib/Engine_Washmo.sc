@@ -21,7 +21,7 @@ Engine_Washmo : CroneEngine {
 
 
         oscAmplitude = OSCFunc({ |msg| 
-            NetAddr("127.0.0.1", 10111).sendMsg("amplitude",msg[3],msg[3]);
+            NetAddr("127.0.0.1", 10111).sendMsg("amplitude",msg[3],msg[4]);
         }, '/oscAmplitude');
 
 
@@ -33,9 +33,7 @@ Engine_Washmo : CroneEngine {
             //     compress_thresh, 1, compress_level, 
             //     compress_attack, compress_release);
             snd = HPF.ar(snd, 50);
-            SendReply.kr(Impulse.kr(10),"/oscAmplitude",[
-                Slew.kr(Amplitude.kr(Mix.new(snd),2,2),0.1,0.1)
-            ]);
+            snd = LPF.ar(snd,2000);
             6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
 
             Out.ar(out,snd*0.5);
@@ -62,6 +60,7 @@ Engine_Washmo : CroneEngine {
             var start=Impulse.kr(0);
             var numvoices = 10;
             var freq=note.midicps;
+            var env_main = EnvGen.ar(Env.perc(attack*timescale,decay*timescale),doneAction:2);
 
             var env = EnvGen.kr(Env.linen(
                 rrand(0,timescale*100)/100,
@@ -74,7 +73,13 @@ Engine_Washmo : CroneEngine {
             
             snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.5,0.5));
             snd=snd/20;
-            snd=snd.tanh*EnvGen.ar(Env.perc(attack*timescale,decay*timescale),doneAction:2);
+            snd=snd.tanh*env_main;
+
+            SendReply.kr(Impulse.kr(10),"/oscAmplitude",[
+                note,
+                env_main
+            ]);
+
 
             DetectSilence.ar(snd,0.01,2,doneAction:2);
             Out.ar(out,snd);

@@ -1,1 +1,1 @@
-# wash
+# emission spectrum
