@@ -171,13 +171,75 @@ function cleanup()
   for k,v in pairs(rev_params) do
     params:set(k,v)
   end
+end
 
+current_sector=1
+shift=false
+show_sector={0,0,0,0}
+show_curve={0,0,0,0}
+function key(k,z)
+  if k==1 then 
+    shift=z==1
+  elseif k==2 and z==1 then 
+    current_sector=current_sector-1
+    if current_sector<1 then 
+      current_sector=1
+    end
+    show_sector[current_sector]=10
+  elseif k==3 and z==1 then 
+    current_sector=current_sector+1
+    if current_sector>4 then 
+      current_sector=4
+    end
+    show_sector[current_sector]=10
+  end
+end
+
+function enc(k,d)
+  if shift then 
+    if k==1 then 
+    elseif k==2 then 
+      params:delta(current_sector.."attack mean",d)
+      show_curve[current_sector]=40
+    elseif k==3 then 
+      params:delta(current_sector.."decay mean",d)
+      show_curve[current_sector]=40
+    end
+  else
+    if k==1 then 
+    elseif k==2 then 
+      params:delta(current_sector.."start",d)
+      show_sector[current_sector]=40
+    elseif k==3 then 
+      params:delta(current_sector.."end",d)
+      show_sector[current_sector]=40
+    end
+  end
 end
 
 function redraw()
   screen.clear()
   screen.aa(0)
   screen.blend_mode(0)
+
+  for i=1,4 do 
+    if show_sector[i]>0 then 
+      show_sector[i]=show_sector[i]-1
+      screen.level(math.floor(util.round(show_sector[i]/4)))
+      local ss=params:get(i.."start")
+      local ee=params:get(i.."end")
+      screen.rect(ss,0,ee-ss+1,65)
+      screen.fill()
+    end
+    if show_curve[i]>0 then 
+      show_curve[i]=show_curve[i]-1
+      screen.level(math.floor(util.round(show_curve[i]/4)))
+      screen.move(12,32)
+      screen.text(string.format("attack: %2.3f s",params:get(i.."attack mean")))
+      screen.move(128-12,32)
+      screen.text_right(string.format("decay: %2.3f s",params:get(i.."attack mean")))
+    end
+  end
   
   for note_ind,v in ipairs(note_env) do
     if v>0.002 then
