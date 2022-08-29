@@ -15,11 +15,12 @@ function init()
     for i=1,2 do
       clock.run(function()
         while true do
-          local note_ind=notes[math.random(#notes)]+octaves[math.random(#octaves)]+root
-          local duration=math.random(500,2000)/10000*params:get("timescale")
-          local attack=math.random(300,700)/1000
-          -- print(note,duration,attack)
-          engine.washmo(note+root,duration,attack,1-attack)
+          local note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
+          local attack=math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale")
+          local decay=math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale")
+          local duration=attack+decay
+          local ring=math.random() -- TODO: make a parameter for ring
+          engine.washmo(note_ind,notes[note_ind],attack,decay,ring)
           clock.sleep(duration)
         end
       end)
@@ -121,9 +122,9 @@ function math.randomn(mu,sigma)
  end
 
 function osc.event(path,args,from)
-  local note=tonumber(args[1])
+  local note_ind=tonumber(args[1])
   local env=tonumber(args[2])
-  note_env[note]=env
+  note_env[note_ind]=env
 end
 
 function cleanup()
@@ -133,20 +134,19 @@ function cleanup()
 
 end
 
-blend_mode=8
 function redraw()
   screen.clear()
   screen.aa(0)
   screen.blend_mode(0)
   
-  for n,v in ipairs(note_env) do
+  for note_ind,v in ipairs(note_env) do
     if v>0.002 then
       local level=util.round(util.linexp(0.002,1,0.001,15,v))
-      local lw=n%2==1 and 1 or 2 -- util.round(util.linexp(0,1,1,2,v))
+      local lw=notes[note_ind]%2==1 and 1 or 2 -- util.round(util.linexp(0,1,1,2,v))
       screen.line_width(math.floor(lw))
       screen.level(level)
-      screen.move(note_pos[n],0)
-      screen.line(note_pos[n],64)
+      screen.move(note_ind+8,0)
+      screen.line(note_ind+8,64)
       screen.stroke()
     end
   end

@@ -19,7 +19,6 @@ Engine_EmissionSpectrum : CroneEngine {
     alloc {
         // EmissionSpectrum specific v0.0.1
 
-
         oscAmplitude = OSCFunc({ |msg| 
             NetAddr("127.0.0.1", 10111).sendMsg("amplitude",msg[3],msg[4]);
         }, '/oscAmplitude');
@@ -55,17 +54,18 @@ Engine_EmissionSpectrum : CroneEngine {
         }).add;
 
         SynthDef("klank",{
-            arg out=0,in,timescale=8,attack=0.5,decay=0.5,note=60,ring=0.5;
+            arg out=0,in,attack=0.5,decay=0.5,note=60,note_ind=0,ring=0.5;
             var snd;
             var start=Impulse.kr(0);
             var numvoices = 10;
             var freq=note.midicps;
-            var env_main = EnvGen.ar(Env.perc(attack*timescale,decay*timescale),doneAction:2);
+            var env_main = EnvGen.ar(Env.perc(attack,decay),doneAction:2);
+            var duration=attack+decay;
 
             var env = EnvGen.kr(Env.linen(
-                rrand(0,timescale*100)/100,
-                rrand(0,timescale*100)/100, 
-                (rrand(0,timescale*100)/100*10), 
+                rrand(0,duration*100)/100,
+                rrand(0,duration*100)/100, 
+                (rrand(0,duration*100)/100*10), 
                 rrand(0,100)/100 ));
  
             snd = DynKlank.ar(`[[freq],[env],[ring]], In.ar(in,2) );
@@ -76,10 +76,9 @@ Engine_EmissionSpectrum : CroneEngine {
             snd=snd.tanh*env_main;
 
             SendReply.kr(Impulse.kr(10),"/oscAmplitude",[
-                note,
+                note_ind,
                 env_main
             ]);
-
 
             DetectSilence.ar(snd,0.01,2,doneAction:2);
             Out.ar(out,snd);
@@ -97,18 +96,20 @@ Engine_EmissionSpectrum : CroneEngine {
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
 
         // metronome
-        this.addCommand("EmissionSpectrum","ffff",{arg msg;
-            var note=msg[1];
-            var timescale=msg[2];
+        this.addCommand("emit","iffff",{arg msg;
+            var note_ind=msg[1];
+            var note=msg[2];
             var attack=msg[3];
             var decay=msg[4];
+            var ring=msg[5];
             Synth.before(synMixer,"klank",[
                 \out,busMixer,
                 \in,busNoise,
+                \note_ind,note_ind,
                 \note,note,
-                \timescale,timescale,
                 \attack,attack,
-                \decay,decay
+                \decay,decay,
+                \ring,ring
             ]).onFree({"freed!"});
         });
 
