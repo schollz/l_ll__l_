@@ -1,23 +1,23 @@
-// Engine_Washmo
+// Engine_EmissionSpectrum
 
 // Inherit methods from CroneEngine
-Engine_Washmo : CroneEngine {
+Engine_EmissionSpectrum : CroneEngine {
 
-    // Washmo specific v0.1.0
+    // EmissionSpectrum specific v0.1.0
     var synMixer;
     var busMixer;
     var synNoise;
     var busNoise;
     var busSidechain;
     var oscAmplitude;
-    // Washmo ^
+    // EmissionSpectrum ^
 
     *new { arg context, doneCallback;
         ^super.new(context, doneCallback);
     }
 
     alloc {
-        // Washmo specific v0.0.1
+        // EmissionSpectrum specific v0.0.1
 
 
         oscAmplitude = OSCFunc({ |msg| 
@@ -97,7 +97,7 @@ Engine_Washmo : CroneEngine {
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
 
         // metronome
-        this.addCommand("washmo","ffff",{arg msg;
+        this.addCommand("EmissionSpectrum","ffff",{arg msg;
             var note=msg[1];
             var timescale=msg[2];
             var attack=msg[3];
@@ -136,17 +136,17 @@ Engine_Washmo : CroneEngine {
             ]).onFree({"freed!"});
         });
 
-        // ^ Washmo specific
+        // ^ EmissionSpectrum specific
 
     }
 
     free {
-        // Washmo Specific v0.0.1
+        // EmissionSpectrum Specific v0.0.1
         synMixer.free;
         synNoise.free;
         busNoise.free;
         busMixer.free;
         oscAmplitude.free;
-        // ^ Washmo specific
+        // ^ EmissionSpectrum specific
     }
 }

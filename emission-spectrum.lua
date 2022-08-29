@@ -1,6 +1,6 @@
 -- wash
 
-engine.name="Washmo"
+engine.name="EmissionSpectrum"
 
 function init()
   initialize_params()
