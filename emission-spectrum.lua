@@ -64,6 +64,11 @@ function init()
   end
 end
 
+-- return a normally distributed variable
+function math.randomn(mu,sigma)
+  return math.log(1/math.random())^.5*math.cos(math.pi*math.random())*sigma+mu
+ end
+
 function osc.event(path,args,from)
   local note=tonumber(args[1])
   local env=tonumber(args[2])
