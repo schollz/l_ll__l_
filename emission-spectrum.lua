@@ -7,20 +7,27 @@ engine.name="EmissionSpectrum"
 max_note_num=14*4
 
 function init()
+  hs.init()
   initialize_params()
-
-  -- TODO: setup halfsecond
 
   for sector=1,4 do
     for i=1,2 do
       clock.run(function()
         while true do
           local note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
-          local attack=math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale")
-          local decay=math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale")
+          local attack=wrap(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
+          local decay=wrap(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
+          local ring=wrap(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
           local duration=attack+decay
-          local ring=math.random() -- TODO: make a parameter for ring
           engine.washmo(note_ind,notes[note_ind],attack,decay,ring)
+          for j=1,2 do 
+            local k=j*2-1
+            if params:get("crow_"..j.."_sector")==sector then 
+              crow.output[k].volts = (notes[note_ind]-60)/12
+              crow.output[k+1].action = string.format("{to(5,%3.5f),to(0,%3.5f)}",attack,decay)
+              crow.output[k+1].execute()  
+            end
+          end
           clock.sleep(duration)
         end
       end)
@@ -62,6 +69,27 @@ function initialize_params()
   params:set("rev_low_time",7)
   params:set("rev_mid_time",11)
   
+  -- setup crow
+  params:add_group("CROW",4)
+  params:add_option("crow_1_sector","crow 1+2 sector",{1,2,3,4},1)
+  params:add_option("crow_2_sector","crow 3+4 sector",{1,2,3,4},4)
+  for _,pram in ipairs({
+    {id="crow_slew",name="crow slew",min=0.0,max=10,exp=false,div=0.1,default=0}
+  }) do
+      for i=1,2 do 
+        params:add{
+          type="control",
+          id=i..pram.id,
+          name=pram.name,
+          controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
+          formatter=pram.formatter,
+        }
+        params:set_action(i..pram.id,function(v)
+          crow.output[i*2-1].slew=v
+        end)
+      end
+  end
+ 
   -- setup scales
   scale_names={}
   for i = 1, #MusicUtil.SCALES do
@@ -99,6 +127,8 @@ function initialize_params()
       {id="attack std",name="attack std",min=0.01,max=30,exp=true,div=0.01,default=3,formatter=function(param) return "+/-"..param:get().." s" end},
       {id="decay mean",name="decay mean",min=0.01,max=30,exp=true,div=0.01,default=10,formatter=function(param) return param:get().." s" end},
       {id="decay std",name="decay std",min=0.01,max=30,exp=true,div=0.01,default=3,formatter=function(param) return "+/-"..param:get().." s" end},
+      {id="ring mean",name="ring mean",min=0.01,max=1,exp=false,div=0.01,default=0.5,formatter=function(param) return param:get() end},
+      {id="ring std",name="ring std",min=0.01,max=1,exp=false,div=0.01,default=0.25,formatter=function(param) return "+/-"..param:get().." s" end},
     }  
     params:add_group("SECTOR"..i,#params_menu)
     for _,pram in ipairs(params_menu) do
@@ -119,7 +149,17 @@ end
 -- return a normally distributed variable
 function math.randomn(mu,sigma)
   return math.log(1/math.random())^.5*math.cos(math.pi*math.random())*sigma+mu
- end
+end
+
+function wrap(n,a,b)
+  while n>b do
+    n=n-(b-a) 
+  end
+  while n<a do 
+    n=n+(b-a)
+  end
+  return n
+end
 
 function osc.event(path,args,from)
   local note_ind=tonumber(args[1])
