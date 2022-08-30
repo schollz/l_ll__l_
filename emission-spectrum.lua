@@ -4,7 +4,7 @@ hs=include('emission-spectrum/lib/halfsecond')
 MusicUtil=require "musicutil"
 engine.name="EmissionSpectrum"
 
-max_note_num=11*4
+max_note_num=12*4
 
 function init()
   hs.init()
@@ -24,9 +24,10 @@ function init()
           for j=1,2 do
             local k=j*2-1
             if params:get("crow_"..j.."_sector")==sector then
-              crow.output[k].volts=(notes[note_ind]-60)/12
-              crow.output[k+1].action=string.format("{to(5,%3.5f),to(0,%3.5f)}",attack,decay)
+              crow.output[k].volts=(notes[note_ind]-24)/12
+              crow.output[k+1].action=string.format("{to(10,%3.5f),to(0,%3.5f)}",attack,decay)
               crow.output[k+1].execute()
+              print(k,(notes[note_ind]-24)/12,string.format("{to(5,%3.5f),to(0,%3.5f)}",attack,decay))
             end
           end
           clock.sleep(duration)
@@ -72,8 +73,8 @@ function initialize_params()
 
   -- setup crow
   params:add_group("CROW",4)
-  params:add_option("crow_1_sector","crow 1+2 sector",{1,2,3,4},1)
-  params:add_option("crow_2_sector","crow 3+4 sector",{1,2,3,4},4)
+  params:add_option("crow_1_sector","crow 1+2 sector",{1,2,3,4},3)
+  params:add_option("crow_2_sector","crow 3+4 sector",{1,2,3,4},2)
   for _,pram in ipairs({
   {id="crow_slew",name="crow slew",min=0.0,max=10,exp=false,div=0.1,default=0}}) do
   for i=1,2 do
@@ -99,7 +100,7 @@ params:add{type="option",id="scale_mode",name="scale mode",
   options=scale_names,default=1,
 action=function() build_scale() end}
 params:add{type="number",id="root_note",name="root note",
-  min=0,max=127,default=26,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
+  min=0,max=127,default=18,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
 action=function() build_scale() end}
 
 -- setup other parameters
@@ -118,16 +119,17 @@ for _,pram in ipairs(params_menu) do
   end)
 end
 
+local ways_and_means={10,7,5,1}
 for i=1,4 do
   local params_menu={
     {id="start",name="start",min=1,max=max_note_num,exp=false,div=1,default=(i-1)*max_note_num/4+1},
     {id="end",name="end",min=1,max=max_note_num,exp=false,div=1,default=i*max_note_num/4},
-    {id="attack mean",name="attack mean",min=0.01,max=30,exp=true,div=0.1,default=10,formatter=function(param) return param:get().." s" end},
-    {id="attack std",name="attack std",min=0.01,max=30,exp=true,div=0.1,default=3,formatter=function(param) return "+/-"..param:get().." s" end},
-    {id="decay mean",name="decay mean",min=0.01,max=30,exp=true,div=0.1,default=10,formatter=function(param) return param:get().." s" end},
-    {id="decay std",name="decay std",min=0.01,max=30,exp=true,div=0.1,default=3,formatter=function(param) return "+/-"..param:get().." s" end},
+    {id="attack mean",name="attack mean",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i],formatter=function(param) return param:get().." s" end},
+    {id="attack std",name="attack std",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i]/4,formatter=function(param) return "+/-"..param:get().." s" end},
+    {id="decay mean",name="decay mean",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i],formatter=function(param) return param:get().." s" end},
+    {id="decay std",name="decay std",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i]/4,formatter=function(param) return "+/-"..param:get().." s" end},
     {id="ring mean",name="ring mean",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
-    {id="ring std",name="ring std",min=0.01,max=1,exp=false,div=0.1,default=0.25,formatter=function(param) return "+/-"..param:get().." s" end},
+    {id="ring std",name="ring std",min=0.01,max=1,exp=false,div=0.1,default=0.2,formatter=function(param) return "+/-"..param:get().." s" end},
   }
   params:add_group("SECTOR"..i,#params_menu)
   for _,pram in ipairs(params_menu) do
@@ -248,7 +250,7 @@ function redraw()
 
   for note_ind,v in ipairs(note_env) do
     if v>0.002 then
-      local level=util.round(util.linlin(0.002,1,0.001,14,v)+1)
+      local level=util.round(util.linlin(0.002,1,0,15.49,v))
       local lw=notes[note_ind]%2==1 and 1 or 2 -- util.round(util.linexp(0,1,1,2,v))
       local pos=note_pos(note_ind)
       screen.line_width(math.floor(lw))
