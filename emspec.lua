@@ -28,7 +28,7 @@ function init()
   for sector=1,4 do
     for i=1,voices[sector] do
       clock.run(function()
-        clock.sleep((sector-1)*3+math.random())
+        clock.sleep((sector-1)*3+i+math.random())
         while true do
           local note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
           local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
