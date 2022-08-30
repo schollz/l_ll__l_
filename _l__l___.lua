@@ -1,4 +1,4 @@
--- || ||| | v1.0.0
+-- | | |    v1.0.0
 -- em spectrum
 --
 -- llllllll.co/t/ll-lll-l
