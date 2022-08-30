@@ -11,7 +11,7 @@
 -- E2/E3 modifies sector position
 -- K1+E modifies parameters
 
-hs=include('emission-spectrum/lib/halfsecond')
+hs=include('lib/halfsecond')
 MusicUtil=require "musicutil"
 engine.name="EmissionSpectrum"
 
