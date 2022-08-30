@@ -118,7 +118,7 @@ function initialize_params()
       {id="decay mean",name="decay",min=0.01,max=30,exp=true,div=0.1,default=attacks[i],formatter=function(param) return param:get().." s" end},
       {id="decay std",name="decay spread",min=0.01,max=30,exp=true,div=0.1,default=decays[i],formatter=function(param) return param:get().." s" end},
       {id="ring mean",name="ring",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
-      {id="ring std",name="ring spread",min=0.01,max=1,exp=false,div=0.1,default=0.2,formatter=function(param) return param:get().." s" end},
+      {id="ring std",name="ring spread",min=0.01,max=1,exp=false,div=0.01,default=0.15,formatter=function(param) return param:get() end},
     }
     params:add_group("SECTOR "..i,#params_menu)
     for _,pram in ipairs(params_menu) do
