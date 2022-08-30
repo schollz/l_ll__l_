@@ -1,4 +1,4 @@
-# emspec
+# || ||| |
 
 interact with a musical emission spectrum.
 
