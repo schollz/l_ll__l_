@@ -1,4 +1,15 @@
--- emission spectrum
+-- EMSPEC v1.0.0
+-- em spectrum
+--
+-- llllllll.co/t/emspec
+--
+--
+--
+--    ▼ instructions below ▼
+--
+-- K2/K3 changes sector
+-- E2/E3 modifies sector position
+-- K1+E modifies parameters
 
 hs=include('emission-spectrum/lib/halfsecond')
 MusicUtil=require "musicutil"
@@ -7,20 +18,24 @@ engine.name="EmissionSpectrum"
 max_note_num=12*4
 
 function init()
+  norns.enc.sens(1,6)
+  norns.enc.sens(2,6)
+  norns.enc.sens(3,6)
+
   hs.init()
   initialize_params()
   local voices={2,3,3,1}
   for sector=1,4 do
     for i=1,voices[sector] do
       clock.run(function()
-        clock.sleep((sector-1)*1+math.random())
+        clock.sleep((sector-1)*3+math.random())
         while true do
           local note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
           local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
           local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
           local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
           local duration=attack+decay
-          engine.emit(note_ind,notes[note_ind],attack,decay,ring)
+          engine.emit(note_ind,notes[note_ind],attack,decay,ring,params:get(sector.."amp"))
           for j=1,2 do
             local k=j*2-1
             if params:get("crow_"..j.."_sector")==sector then
@@ -90,17 +105,20 @@ function initialize_params()
     end
   end
 
-  local ways_and_means={10,7,5,1}
+  local attacks={math.randomn(10,2),math.randomn(7,2),math.randomn(5,1),math.randomn(1.7,0.5)}
+  local decays={math.randomn(10,2),math.randomn(7,2),math.randomn(5,1),math.randomn(1.7,0.5)}
+  local amps={1,0.8,1.1,0.2}
   for i=1,4 do
     local params_menu={
       {id="start",name="start",min=1,max=max_note_num,exp=false,div=1,default=(i-1)*max_note_num/4+1},
       {id="end",name="end",min=1,max=max_note_num,exp=false,div=1,default=i*max_note_num/4},
-      {id="attack mean",name="attack mean",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i],formatter=function(param) return param:get().." s" end},
-      {id="attack std",name="attack std",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i]/4,formatter=function(param) return "+/-"..param:get().." s" end},
-      {id="decay mean",name="decay mean",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i],formatter=function(param) return param:get().." s" end},
-      {id="decay std",name="decay std",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i]/4,formatter=function(param) return "+/-"..param:get().." s" end},
-      {id="ring mean",name="ring mean",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
-      {id="ring std",name="ring std",min=0.01,max=1,exp=false,div=0.1,default=0.2,formatter=function(param) return "+/-"..param:get().." s" end},
+      {id="amp",name="amp",min=0.01,max=2,exp=false,div=0.01,default=amps[i]},
+      {id="attack mean",name="attack mean",min=0.01,max=30,exp=true,div=0.1,default=attacks[i],formatter=function(param) return param:get().." s" end},
+      {id="attack std",name="attack spread",min=0.01,max=30,exp=true,div=0.1,default=decays[i],formatter=function(param) return param:get().." s" end},
+      {id="decay mean",name="decay",min=0.01,max=30,exp=true,div=0.1,default=attacks[i],formatter=function(param) return param:get().." s" end},
+      {id="decay std",name="decay spread",min=0.01,max=30,exp=true,div=0.1,default=decays[i],formatter=function(param) return param:get().." s" end},
+      {id="ring mean",name="ring",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
+      {id="ring std",name="ring spread",min=0.01,max=1,exp=false,div=0.1,default=0.2,formatter=function(param) return param:get().." s" end},
     }
     params:add_group("SECTOR "..i,#params_menu)
     for _,pram in ipairs(params_menu) do
@@ -202,6 +220,8 @@ end
 function enc(k,d)
   if shift then
     if k==1 then
+      params:delta(current_sector.."amp",d)
+      show_curve[current_sector]=40
     elseif k==2 then
       params:delta(current_sector.."attack mean",d)
       show_curve[current_sector]=40
@@ -250,16 +270,25 @@ function redraw()
       screen.line(pos,64)
       screen.stroke()
     end
+
   end
+
+  screen.update()
 
   for i=1,4 do
     if show_curve[i]>0 then
+      screen.blend_mode(4)
       show_curve[i]=show_curve[i]-1
       screen.level(math.floor(util.round(show_curve[i]/4)))
+      screen.move(12,32-16)
+      screen.text(string.format("sector: %d",i))
+      screen.move(128-12,32-8)
+      screen.text_right(string.format("amp: %2.2f",params:get(i.."amp")))
       screen.move(12,32)
       screen.text(string.format("attack: %2.1f s",params:get(i.."attack mean")))
       screen.move(128-12,40)
       screen.text_right(string.format("decay: %2.1f s",params:get(i.."decay mean")))
+      screen.blend_mode(0)
     end
   end
 

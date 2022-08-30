@@ -10,6 +10,7 @@ Engine_EmissionSpectrum : CroneEngine {
     var busNoise;
     var busSidechain;
     var oscAmplitude;
+    var syns;
     // EmissionSpectrum ^
 
     *new { arg context, doneCallback;
@@ -18,6 +19,7 @@ Engine_EmissionSpectrum : CroneEngine {
 
     alloc {
         // EmissionSpectrum specific v0.0.1
+        syns=Dictionary.new();
 
         oscAmplitude = OSCFunc({ |msg| 
             NetAddr("127.0.0.1", 10111).sendMsg("amplitude",msg[3],msg[4]);
@@ -31,8 +33,8 @@ Engine_EmissionSpectrum : CroneEngine {
             // snd = Compander.ar(snd, sndSC*sidechain_mult, 
             //     compress_thresh, 1, compress_level, 
             //     compress_attack, compress_release);
-            snd = HPF.ar(snd, 50);
-            snd = LPF.ar(snd,2000);
+            snd = HPF.ar(snd, 40);
+            //snd = LPF.ar(snd,2000);
             6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
 
             Out.ar(out,snd*0.5);
@@ -54,7 +56,7 @@ Engine_EmissionSpectrum : CroneEngine {
         }).add;
 
         SynthDef("klank",{
-            arg out=0,in,attack=0.5,decay=0.5,note=60,note_ind=0,ring=0.5;
+            arg out=0,in,amp=1.0,attack=0.5,decay=0.5,note=60,note_ind=0,ring=0.5;
             var snd;
             var start=Impulse.kr(0);
             var numvoices = 10;
@@ -68,11 +70,13 @@ Engine_EmissionSpectrum : CroneEngine {
                 (rrand(0,duration*100)/100*10), 
                 rrand(0,100)/100 ));
  
+            freq = Vibrato.kr(freq,LFNoise1.kr(1).range(1,4),0.005,1.0,1.0,0.95,0.1);
+
             snd = DynKlank.ar(`[[freq],[env],[ring]], In.ar(in,2) );
             snd = SelectX.ar(VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7),[snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)]);
             
             snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.5,0.5));
-            snd=snd/20;
+            snd=snd/20*amp;
             snd=snd.tanh*env_main;
 
             SendReply.kr(Impulse.kr(10),"/oscAmplitude",[
@@ -96,21 +100,29 @@ Engine_EmissionSpectrum : CroneEngine {
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
 
         // metronome
-        this.addCommand("emit","iffff",{arg msg;
+        this.addCommand("emit","ifffff",{arg msg;
             var note_ind=msg[1];
             var note=msg[2];
             var attack=msg[3];
             var decay=msg[4];
             var ring=msg[5];
-            Synth.before(synMixer,"klank",[
+            var amp=msg[6];
+            var id=10000000.rand;
+            syns.put(id,Synth.before(synMixer,"klank",[
                 \out,busMixer,
                 \in,busNoise,
                 \note_ind,note_ind,
                 \note,note,
                 \attack,attack,
                 \decay,decay,
-                \ring,ring
-            ]).onFree({"freed!"});
+                \ring,ring,
+                \amp,amp
+            ]).onFree({
+                syns.put(id,nil);
+                NetAddr("127.0.0.1", 10111).sendMsg("amplitude",note_ind,0);
+                // ["freed",note_ind,id].postln;
+            }));
+            NodeWatcher.register(syns.at(id));
         });
 
         this.addCommand("kick","fffffffff",{arg msg;
@@ -143,10 +155,14 @@ Engine_EmissionSpectrum : CroneEngine {
 
     free {
         // EmissionSpectrum Specific v0.0.1
+        syns.keysValuesDo({ arg k,v;
+            v.free;
+        });
         synMixer.free;
         synNoise.free;
         busNoise.free;
         busMixer.free;
+        busSidechain.free;
         oscAmplitude.free;
         // ^ EmissionSpectrum specific
     }
