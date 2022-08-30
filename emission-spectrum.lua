@@ -13,7 +13,7 @@ function init()
   for sector=1,4 do
     for i=1,voices[sector] do
       clock.run(function()
-        clock.sleep(sector+i*0.5)
+        clock.sleep((sector-1)*1+math.random())
         while true do
           local note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
           local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
@@ -27,7 +27,6 @@ function init()
               crow.output[k].volts=(notes[note_ind]-24)/12
               crow.output[k+1].action=string.format("{to(10,%3.5f),to(0,%3.5f)}",attack,decay)
               crow.output[k+1].execute()
-              print(k,(notes[note_ind]-24)/12,string.format("{to(5,%3.5f),to(0,%3.5f)}",attack,decay))
             end
           end
           clock.sleep(duration)
@@ -75,76 +74,76 @@ function initialize_params()
   params:add_group("CROW",4)
   params:add_option("crow_1_sector","crow 1+2 sector",{1,2,3,4},3)
   params:add_option("crow_2_sector","crow 3+4 sector",{1,2,3,4},2)
-  for _,pram in ipairs({
-  {id="crow_slew",name="crow slew",min=0.0,max=10,exp=false,div=0.1,default=0}}) do
-  for i=1,2 do
-    params:add{
-      type="control",
-      id=i..pram.id,
-      name=pram.name,
-      controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
-      formatter=pram.formatter,
-    }
-    params:set_action(i..pram.id,function(v)
-      crow.output[i*2-1].slew=v
-    end)
+  prams={{id="crow_slew",name="crow slew",min=0.0,max=10,exp=false,div=0.1,default=0}}
+  for _,pram in ipairs(prams) do
+    for i=1,2 do
+      params:add{
+        type="control",
+        id=i..pram.id,
+        name=pram.name.." "..(i*2)-1,
+        controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
+        formatter=pram.formatter,
+      }
+      params:set_action(i..pram.id,function(v)
+        crow.output[i*2-1].slew=v
+      end)
+    end
   end
-end
 
--- setup scales
-scale_names={}
-for i=1,#MusicUtil.SCALES do
-  table.insert(scale_names,string.lower(MusicUtil.SCALES[i].name))
-end
-params:add{type="option",id="scale_mode",name="scale mode",
-  options=scale_names,default=1,
-action=function() build_scale() end}
-params:add{type="number",id="root_note",name="root note",
-  min=0,max=127,default=18,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
-action=function() build_scale() end}
+  local ways_and_means={10,7,5,1}
+  for i=1,4 do
+    local params_menu={
+      {id="start",name="start",min=1,max=max_note_num,exp=false,div=1,default=(i-1)*max_note_num/4+1},
+      {id="end",name="end",min=1,max=max_note_num,exp=false,div=1,default=i*max_note_num/4},
+      {id="attack mean",name="attack mean",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i],formatter=function(param) return param:get().." s" end},
+      {id="attack std",name="attack std",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i]/4,formatter=function(param) return "+/-"..param:get().." s" end},
+      {id="decay mean",name="decay mean",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i],formatter=function(param) return param:get().." s" end},
+      {id="decay std",name="decay std",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i]/4,formatter=function(param) return "+/-"..param:get().." s" end},
+      {id="ring mean",name="ring mean",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
+      {id="ring std",name="ring std",min=0.01,max=1,exp=false,div=0.1,default=0.2,formatter=function(param) return "+/-"..param:get().." s" end},
+    }
+    params:add_group("SECTOR "..i,#params_menu)
+    for _,pram in ipairs(params_menu) do
+      params:add{
+        type="control",
+        id=i..pram.id,
+        name=pram.name,
+        controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
+      formatter=pram.formatter}
+      params:set_action(i..pram.id,function(v)
+      end)
+    end
+  end
 
--- setup other parameters
-local params_menu={
-  {id="timescale",name="timescale",min=0.01,max=10,exp=false,div=0.01,default=1},
-}
-for _,pram in ipairs(params_menu) do
-  params:add{
-    type="control",
-    id=pram.id,
-    name=pram.name,
-    controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
-    formatter=pram.formatter,
-  }
-  params:set_action(pram.id,function(v)
-  end)
-end
+  -- setup scales
+  scale_names={}
+  for i=1,#MusicUtil.SCALES do
+    table.insert(scale_names,string.lower(MusicUtil.SCALES[i].name))
+  end
+  params:add{type="option",id="scale_mode",name="scale mode",
+    options=scale_names,default=1,
+  action=function() build_scale() end}
+  params:add{type="number",id="root_note",name="root note",
+    min=0,max=127,default=18,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
+  action=function() build_scale() end}
 
-local ways_and_means={10,7,5,1}
-for i=1,4 do
+  -- setup other parameters
   local params_menu={
-    {id="start",name="start",min=1,max=max_note_num,exp=false,div=1,default=(i-1)*max_note_num/4+1},
-    {id="end",name="end",min=1,max=max_note_num,exp=false,div=1,default=i*max_note_num/4},
-    {id="attack mean",name="attack mean",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i],formatter=function(param) return param:get().." s" end},
-    {id="attack std",name="attack std",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i]/4,formatter=function(param) return "+/-"..param:get().." s" end},
-    {id="decay mean",name="decay mean",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i],formatter=function(param) return param:get().." s" end},
-    {id="decay std",name="decay std",min=0.01,max=30,exp=true,div=0.1,default=ways_and_means[i]/4,formatter=function(param) return "+/-"..param:get().." s" end},
-    {id="ring mean",name="ring mean",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
-    {id="ring std",name="ring std",min=0.01,max=1,exp=false,div=0.1,default=0.2,formatter=function(param) return "+/-"..param:get().." s" end},
+    {id="timescale",name="timescale",min=0.01,max=10,exp=false,div=0.01,default=1},
   }
-  params:add_group("SECTOR"..i,#params_menu)
   for _,pram in ipairs(params_menu) do
     params:add{
       type="control",
-      id=i..pram.id,
+      id=pram.id,
       name=pram.name,
       controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
       formatter=pram.formatter,
     }
-    params:set_action(i..pram.id,function(v)
+    params:set_action(pram.id,function(v)
     end)
   end
-end
-params:bang()
+
+  params:bang()
 end
 
 -- return a normally distributed variable
@@ -238,14 +237,6 @@ function redraw()
       screen.fill()
       screen.blend_mode(0)
     end
-    if show_curve[i]>0 then
-      show_curve[i]=show_curve[i]-1
-      screen.level(math.floor(util.round(show_curve[i]/4)))
-      screen.move(12,32)
-      screen.text(string.format("attack: %2.3f s",params:get(i.."attack mean")))
-      screen.move(128-12,32)
-      screen.text_right(string.format("decay: %2.3f s",params:get(i.."decay mean")))
-    end
   end
 
   for note_ind,v in ipairs(note_env) do
@@ -258,6 +249,17 @@ function redraw()
       screen.move(pos,0)
       screen.line(pos,64)
       screen.stroke()
+    end
+  end
+
+  for i=1,4 do
+    if show_curve[i]>0 then
+      show_curve[i]=show_curve[i]-1
+      screen.level(math.floor(util.round(show_curve[i]/4)))
+      screen.move(12,32)
+      screen.text(string.format("attack: %2.1f s",params:get(i.."attack mean")))
+      screen.move(128-12,40)
+      screen.text_right(string.format("decay: %2.1f s",params:get(i.."decay mean")))
     end
   end
 
