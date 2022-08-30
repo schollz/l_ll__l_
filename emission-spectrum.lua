@@ -1,6 +1,6 @@
--- wash
+-- emission spectrum
 
-hs = include('lib/halfsecond')
+hs = include('emission-spectrum/lib/halfsecond')
 MusicUtil = require "musicutil"
 engine.name="EmissionSpectrum"
 
@@ -19,7 +19,7 @@ function init()
           local decay=wrap(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
           local ring=wrap(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
           local duration=attack+decay
-          engine.washmo(note_ind,notes[note_ind],attack,decay,ring)
+          engine.emit(note_ind,notes[note_ind],attack,decay,ring)
           for j=1,2 do 
             local k=j*2-1
             if params:get("crow_"..j.."_sector")==sector then 
@@ -48,7 +48,7 @@ function init()
 end
 
 function build_scale()
-  notes = MusicUtil.generate_scale_of_length(params:get("root_note"), params:get("scale_mode"), 56)
+  notes = MusicUtil.generate_scale_of_length(params:get("root_note"), params:get("scale_mode"), max_note_num)
 end
 
 function initialize_params()
@@ -121,8 +121,8 @@ function initialize_params()
 
   for i=1,4 do 
     local params_menu={
-      {id="start",name="start",min=1,max=num_notes,exp=false,div=1,default=(i-1)*max_note_num/4+1},
-      {id="end",name="end",min=1,max=num_notes,exp=false,div=1,default=i*max_note_num/4},
+      {id="start",name="start",min=1,max=max_note_num,exp=false,div=1,default=(i-1)*max_note_num/4+1},
+      {id="end",name="end",min=1,max=max_note_num,exp=false,div=1,default=i*max_note_num/4},
       {id="attack mean",name="attack mean",min=0.01,max=30,exp=true,div=0.01,default=10,formatter=function(param) return param:get().." s" end},
       {id="attack std",name="attack std",min=0.01,max=30,exp=true,div=0.01,default=3,formatter=function(param) return "+/-"..param:get().." s" end},
       {id="decay mean",name="decay mean",min=0.01,max=30,exp=true,div=0.01,default=10,formatter=function(param) return param:get().." s" end},
@@ -139,7 +139,7 @@ function initialize_params()
         controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
         formatter=pram.formatter,
       }
-      params:set_action(pram.id,function(v)
+      params:set_action(i..pram.id,function(v)
       end)
     end
   end
@@ -159,6 +159,11 @@ function wrap(n,a,b)
     n=n+(b-a)
   end
   return n
+end
+
+
+function note_pos(ind)
+  return math.floor(util.round(128/max_note_num*ind))
 end
 
 function osc.event(path,args,from)
@@ -217,6 +222,7 @@ function enc(k,d)
   end
 end
 
+
 function redraw()
   screen.clear()
   screen.aa(0)
@@ -224,12 +230,15 @@ function redraw()
 
   for i=1,4 do 
     if show_sector[i]>0 then 
+      screen.blend_mode(3)
       show_sector[i]=show_sector[i]-1
       screen.level(math.floor(util.round(show_sector[i]/4)))
-      local ss=params:get(i.."start")
-      local ee=params:get(i.."end")
+      local ss=note_pos(params:get(i.."start"))
+      local ee=note_pos(params:get(i.."end"))
+      print(ss,ee)
       screen.rect(ss,0,ee-ss+1,65)
       screen.fill()
+      screen.blend_mode(0)
     end
     if show_curve[i]>0 then 
       show_curve[i]=show_curve[i]-1
@@ -245,10 +254,11 @@ function redraw()
     if v>0.002 then
       local level=util.round(util.linexp(0.002,1,0.001,15,v))
       local lw=notes[note_ind]%2==1 and 1 or 2 -- util.round(util.linexp(0,1,1,2,v))
+      local pos=note_pos(note_ind)
       screen.line_width(math.floor(lw))
       screen.level(level)
-      screen.move(note_ind+8,0)
-      screen.line(note_ind+8,64)
+      screen.move(pos,0)
+      screen.line(pos,64)
       screen.stroke()
     end
   end
