@@ -113,7 +113,7 @@ function initialize_params()
       {id="start",name="start",min=1,max=max_note_num,exp=false,div=1,default=(i-1)*max_note_num/4+1},
       {id="end",name="end",min=1,max=max_note_num,exp=false,div=1,default=i*max_note_num/4},
       {id="amp",name="amp",min=0.01,max=2,exp=false,div=0.01,default=amps[i]},
-      {id="attack mean",name="attack mean",min=0.01,max=30,exp=true,div=0.1,default=attacks[i],formatter=function(param) return param:get().." s" end},
+      {id="attack mean",name="attack",min=0.01,max=30,exp=true,div=0.1,default=attacks[i],formatter=function(param) return param:get().." s" end},
       {id="attack std",name="attack spread",min=0.01,max=30,exp=true,div=0.1,default=decays[i],formatter=function(param) return param:get().." s" end},
       {id="decay mean",name="decay",min=0.01,max=30,exp=true,div=0.1,default=attacks[i],formatter=function(param) return param:get().." s" end},
       {id="decay std",name="decay spread",min=0.01,max=30,exp=true,div=0.1,default=decays[i],formatter=function(param) return param:get().." s" end},
