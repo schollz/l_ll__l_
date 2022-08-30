@@ -77,7 +77,7 @@ Engine_EmissionSpectrum : CroneEngine {
 
             SendReply.kr(Impulse.kr(10),"/oscAmplitude",[
                 note_ind,
-                env_main
+                env_main*env
             ]);
 
             DetectSilence.ar(snd,0.01,2,doneAction:2);
