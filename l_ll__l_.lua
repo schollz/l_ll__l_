@@ -1,7 +1,7 @@
--- _|_|___  v1.0.0
+-- _|_||__|_  v1.0.0
 -- play a musical spectrum
 --
--- llllllll.co/t/_|__|___
+-- llllllll.co/t/_|_||__|_
 --
 --
 --
