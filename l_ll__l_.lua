@@ -16,6 +16,7 @@ MusicUtil=require "musicutil"
 engine.name="EmissionSpectrum"
 
 max_note_num=12*4
+voice_limit=10
 
 function init()
   norns.enc.sens(1,6)
@@ -26,6 +27,7 @@ function init()
   initialize_params()
   local voices={2,3,3,1}
   local clocks={}
+  local voice_count=0
   for sector=1,4 do
     for i=1,voices[sector] do
       table.insert(clocks,clock.run(function()
@@ -36,6 +38,7 @@ function init()
           local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
           local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
           local duration=attack+decay
+	  if voice_count<voice_limit then 
           engine.emit(note_ind,notes[note_ind],attack,decay,ring,params:get(sector.."amp"))
           for j=1,2 do
             local k=j*2-1
@@ -45,7 +48,10 @@ function init()
               crow.output[k+1].execute()
             end
           end
+ 	 end
+	  voice_count=voice_count+1
           clock.sleep(duration)
+	  voice_count=voice_count-1
         end
       end))
     end
