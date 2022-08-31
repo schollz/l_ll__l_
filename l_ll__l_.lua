@@ -1,4 +1,4 @@
--- |_||__|_  v1.0.0
+/note//note/ v1.0.0
 -- play a musical spectrum
 --
 -- llllllll.co/t/|_||__|_
@@ -11,6 +11,7 @@
 -- E2/E3 modifies sector position
 -- K1+E modifies parameters
 
+grid_=include("lib/ggrid")
 hs=include('lib/halfsecond')
 MusicUtil=require "musicutil"
 engine.name="EmissionSpectrum"
@@ -53,12 +54,14 @@ function init()
   end
 end
 
-function note_off(note_ind)
+function note_off(sector,note_ind)
 engine.emit_off(note_ind)
 end
 
 function note_on(sector,node_ind,force,gate)
-          note_ind=note_ind or math.random(params:get(sector.."start"),params:get(sector.."end"))
+        if note_ind==nil then 
+		note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
+	end
           local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
           local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
           local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)

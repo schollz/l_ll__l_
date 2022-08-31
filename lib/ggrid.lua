@@ -44,6 +44,10 @@ function GGrid:new(args)
   return m
 end
 
+function GGrid:note_ind(row,col)
+local sector=math.ceil(row/2)
+return wrap(col,params:get(sector.."start"),params:get(sector.."end"))
+end
 
 function GGrid:grid_key(x,y,z)
   self:key_press(y,x,z==1)
@@ -55,6 +59,13 @@ function GGrid:key_press(row,col,on)
     self.pressed_buttons[row..","..col]=true
   else
     self.pressed_buttons[row..","..col]=nil
+  end
+
+  local sector=math.ceil(row/2)
+  if on then 
+	  note_on(sector,self:note_ind(row,col),true,true)
+  else
+	  note_off(sector,self:note_ind(row,col))
   end
 end
 
