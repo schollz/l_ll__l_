@@ -25,9 +25,10 @@ function init()
   hs.init()
   initialize_params()
   local voices={2,3,3,1}
+  local clocks={}
   for sector=1,4 do
     for i=1,voices[sector] do
-      clock.run(function()
+      table.insert(clocks,clock.run(function()
         clock.sleep((sector-1)*3+i+math.random())
         while true do
           local note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
@@ -46,7 +47,7 @@ function init()
           end
           clock.sleep(duration)
         end
-      end)
+      end))
     end
   end
 
@@ -192,6 +193,9 @@ end
 function cleanup()
   for k,v in pairs(rev_params) do
     params:set(k,v)
+  end
+  for _, c in ipairs(clocks) do 
+    clock.cancel(c)
   end
 end
 

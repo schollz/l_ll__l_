@@ -37,7 +37,7 @@ Engine_EmissionSpectrum : CroneEngine {
             //snd = LPF.ar(snd,2000);
             6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
 
-            Out.ar(out,snd*0.5);
+            Out.ar(out,snd/4);
         }).add;
 
         SynthDef("noise",{
@@ -75,7 +75,7 @@ Engine_EmissionSpectrum : CroneEngine {
             snd = DynKlank.ar(`[[freq],[env],[ring]], In.ar(in,2) );
             snd = SelectX.ar(VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7),[snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)]);
             
-            snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.5,0.5));
+            snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.75,0.75));
             snd=snd/20*amp;
             snd=snd.tanh*env_main;
 
