@@ -123,6 +123,47 @@ Engine_EmissionSpectrum : CroneEngine {
 
         synNoise=Synth.head(context.server,"noise",[\out,busNoise]);
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
+ 
+        turn_off {
+          arg id;
+          if (syns.at(id).notNil,{
+            if (syns.at(id).isRunning,{
+              syns.at(id).set(\gate,0);
+            });
+          });
+        }
+
+        this.addCommand("emit_off","i",{arg msg;
+          var id=msg[1];
+          turn_off(id);
+        });
+
+        this.addCommand("emit_on","iffffff",{arg msg;
+            var note_ind=msg[1];
+            var note=msg[2];
+            var attack=msg[3];
+            var decay=msg[4];
+            var ring=msg[5];
+            var amp=msg[6];
+            var gate=msg[7];
+            var id=note_ind;
+            turn_off(id);
+            syns.put(id,Synth.before(synMixer,"klank_man",[
+                \out,busMixer,
+                \in,busNoise,
+                \note_ind,note_ind,
+                \note,note,
+                \attack,attack,
+                \decay,decay,
+                \ring,ring,
+                \amp,amp,
+                \gate,1,
+            ]).onFree({
+                syns.put(id,nil);
+                NetAddr("127.0.0.1", 10111).sendMsg("freed",note_ind);
+            }));
+            NodeWatcher.register(syns.at(id));
+        });
 
         this.addCommand("emit","ifffff",{arg msg;
             var note_ind=msg[1];
@@ -143,8 +184,7 @@ Engine_EmissionSpectrum : CroneEngine {
                 \amp,amp
             ]).onFree({
                 syns.put(id,nil);
-                NetAddr("127.0.0.1", 10111).sendMsg("amplitude",note_ind,0);
-                // ["freed",note_ind,id].postln;
+                NetAddr("127.0.0.1", 10111).sendMsg("freed",note_ind);
             }));
             NodeWatcher.register(syns.at(id));
         });

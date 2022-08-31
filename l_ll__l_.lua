@@ -17,6 +17,7 @@ engine.name="EmissionSpectrum"
 
 max_note_num=12*4
 voice_limit=10
+voice_count=0
 
 function init()
   norns.enc.sens(1,6)
@@ -27,7 +28,6 @@ function init()
   initialize_params()
   local voices={2,3,3,1}
   local clocks={}
-  local voice_count=0
   for sector=1,4 do
     for i=1,voices[sector] do
       table.insert(clocks,clock.run(function()
@@ -39,6 +39,7 @@ function init()
           local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
           local duration=attack+decay
 	  if voice_count<voice_limit then 
+	  voice_count=voice_count+1
           engine.emit(note_ind,notes[note_ind],attack,decay,ring,params:get(sector.."amp"))
           for j=1,2 do
             local k=j*2-1
@@ -49,9 +50,7 @@ function init()
             end
           end
  	 end
-	  voice_count=voice_count+1
           clock.sleep(duration)
-	  voice_count=voice_count-1
         end
       end))
     end
@@ -191,9 +190,15 @@ function note_pos(ind)
 end
 
 function osc.event(path,args,from)
+	if path=="amplitude" then 
   local note_ind=tonumber(args[1])
   local env=tonumber(args[2])
   note_env[note_ind]=env
+  elseif path=="freed" then 
+  local note_ind=tonumber(args[1])
+  note_env[note_ind]=0
+  voice_count=voice_count-1
+  end
 end
 
 function cleanup()
