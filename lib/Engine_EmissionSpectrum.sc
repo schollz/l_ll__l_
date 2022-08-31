@@ -138,14 +138,13 @@ Engine_EmissionSpectrum : CroneEngine {
           turn_off(id);
         });
 
-        this.addCommand("emit_on","iffffff",{arg msg;
+        this.addCommand("emit_on","ifffff",{arg msg;
             var note_ind=msg[1];
             var note=msg[2];
             var attack=msg[3];
             var decay=msg[4];
             var ring=msg[5];
             var amp=msg[6];
-            var gate=msg[7];
             var id=note_ind;
             turn_off(id);
             syns.put(id,Synth.before(synMixer,"klank_man",[
