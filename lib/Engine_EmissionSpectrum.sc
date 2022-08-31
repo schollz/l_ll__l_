@@ -99,7 +99,6 @@ Engine_EmissionSpectrum : CroneEngine {
         synNoise=Synth.head(context.server,"noise",[\out,busNoise]);
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
 
-        // metronome
         this.addCommand("emit","ifffff",{arg msg;
             var note_ind=msg[1];
             var note=msg[2];
