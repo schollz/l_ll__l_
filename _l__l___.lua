@@ -1,5 +1,5 @@
 -- _|_|___  v1.0.0
--- em spectrum
+-- play a musical spectrum
 --
 -- llllllll.co/t/_|__|___
 --
