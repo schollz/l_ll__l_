@@ -1,4 +1,4 @@
-# || ||| |
+#  |  |   
 
 interact with a musical emission spectrum.
 
@@ -22,5 +22,5 @@ if you are using crow, you can assign crow to specific sectors for [emitting pit
 ## Install
 
 ```
-;install https://github.com/schollz/emspec
+;install https://github.com/schollz/_l__l____
 ```
