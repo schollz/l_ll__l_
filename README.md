@@ -24,3 +24,9 @@ if you are using crow, you can assign crow to specific sectors for [emitting pit
 ```
 ;install https://github.com/schollz/_l__l____
 ```
+
+## TODO
+
+- make a new engine synthdef for the grid/midi (for use with note_ons/offs)
+- grid each 2 rows is a different sector
+- midi - each note corresponds to a sector, i.e. sector index = midi note % 4, note index = ((midi note % 56)
