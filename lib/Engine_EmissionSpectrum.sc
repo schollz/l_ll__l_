@@ -86,6 +86,32 @@ Engine_EmissionSpectrum : CroneEngine {
             DetectSilence.ar(snd,0.01,2,doneAction:2);
             Out.ar(out,snd);
         }).add;
+        
+        SynthDef("klank_man",{
+            arg out=0,in,amp=1.0,attack=0.5,decay=0.5,note=60,note_ind=0,ring=0.5,gate=0;
+            var snd;
+            var start=Impulse.kr(0);
+            var freq=note.midicps;
+            var env = EnvGen.ar(Env.adsr(attack,1.0,1.0,decay),gate,doneAction:2);
+            var duration=attack+decay;
+
+            freq = Vibrato.kr(freq,LFNoise1.kr(1).range(1,4),0.005,1.0,1.0,0.95,0.1);
+
+            snd = DynKlank.ar(`[[freq],[env],[ring]], In.ar(in,2) );
+            snd = SelectX.ar(VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7),[snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)]);
+            
+            snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.75,0.75));
+            snd=snd/20*amp;
+            snd=snd.tanh*env;
+
+            SendReply.kr(Impulse.kr(10),"/oscAmplitude",[
+                note_ind,
+                env
+            ]);
+
+            DetectSilence.ar(snd,0.01,2,doneAction:2);
+            Out.ar(out,snd);
+        }).add;
 
         context.server.sync;
 
