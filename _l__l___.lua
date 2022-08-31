@@ -1,7 +1,7 @@
--- | | |    v1.0.0
+-- _|_|___  v1.0.0
 -- em spectrum
 --
--- llllllll.co/t/ll-lll-l
+-- llllllll.co/t/_|__|___
 --
 --
 --
