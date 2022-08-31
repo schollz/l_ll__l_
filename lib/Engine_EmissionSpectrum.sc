@@ -59,7 +59,6 @@ Engine_EmissionSpectrum : CroneEngine {
             arg out=0,in,amp=1.0,attack=0.5,decay=0.5,note=60,note_ind=0,ring=0.5;
             var snd;
             var start=Impulse.kr(0);
-            var numvoices = 10;
             var freq=note.midicps;
             var env_main = EnvGen.ar(Env.perc(attack,decay),doneAction:2);
             var duration=attack+decay;
