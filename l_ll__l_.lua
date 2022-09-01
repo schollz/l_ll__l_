@@ -20,8 +20,8 @@ max_note_num=12*4
 voice_limit=10
 voice_count=0
 
-function note_off(note_ind)
-  engine.emit_off(note_ind)
+function note_off(note_indy)
+  engine.emit_off(note_indy)
 end
 
 function note_on(sector,node_indy,force,gate)
