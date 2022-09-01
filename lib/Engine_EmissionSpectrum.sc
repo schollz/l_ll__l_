@@ -22,6 +22,8 @@ Engine_EmissionSpectrum : CroneEngine {
       if (syns.at(id).notNil,{
         if (syns.at(id).isRunning,{
           syns.at(id).set(\gate,0);
+        },{
+          syns.at(id).free;
         });
       });
     }
