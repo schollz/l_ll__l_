@@ -61,7 +61,7 @@ function init()
   for sector=1,4 do
     for i=1,voices[sector] do
       table.insert(clocks,clock.run(function()
-        clock.sleep((sector-1)*3+(sector>1 and i or 0)+math.random())
+        clock.sleep(((sector-1)*3+(sector>1 and i or 0)+math.random())/2)
         while true do
           local duration=note_on(sector)
           clock.sleep(duration)
@@ -127,7 +127,7 @@ function initialize_params()
 
   local attacks={math.randomn(10,2),math.randomn(7,2),math.randomn(5,1),math.randomn(1.7,0.5)}
   local decays={math.randomn(10,2),math.randomn(7,2),math.randomn(5,1),math.randomn(1.7,0.5)}
-  local amps={0.7,0.9,1.0,0.2}
+  local amps={0.7,0.8,1.0,0.5}
   for i=1,4 do
     local params_menu={
       {id="start",name="start",min=1,max=max_note_num,exp=false,div=1,default=(i-1)*max_note_num/4+1},

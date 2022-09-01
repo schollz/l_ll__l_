@@ -46,7 +46,7 @@ Engine_EmissionSpectrum : CroneEngine {
             //snd = LPF.ar(snd,2000);
             6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
 
-            Out.ar(out,snd/4);
+            Out.ar(out,snd/10);
         }).add;
 
         SynthDef("noise",{
