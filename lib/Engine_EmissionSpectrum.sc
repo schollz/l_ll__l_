@@ -174,7 +174,14 @@ Engine_EmissionSpectrum : CroneEngine {
             var decay=msg[4];
             var ring=msg[5];
             var amp=msg[6];
-            var id=10000000.rand;
+            var id=300+10000000.rand;
+            var doplay=true;
+      if (syns.at(note_ind).notNil,{
+        if (syns.at(note_ind).isRunning,{
+	doplay=false;
+        });
+      });
+	    if (doplay,{
             syns.put(id,Synth.before(synMixer,"klank",[
                 \out,busMixer,
                 \in,busNoise,
@@ -189,6 +196,7 @@ Engine_EmissionSpectrum : CroneEngine {
                 NetAddr("127.0.0.1", 10111).sendMsg("freed",note_ind);
             }));
             NodeWatcher.register(syns.at(id));
+	    });
         });
 
         this.addCommand("kick","fffffffff",{arg msg;
