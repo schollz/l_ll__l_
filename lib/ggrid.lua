@@ -18,11 +18,14 @@ function GGrid:new(args)
 
   -- setup visual
   m.visual={}
+  m.notes_on={}
   m.grid_width=16
   for i=1,8 do
     m.visual[i]={}
+    m.notes_on[i]={}
     for j=1,m.grid_width do
       m.visual[i][j]=0
+      m.notes_on[i][j]=0
     end
   end
 
@@ -54,7 +57,7 @@ end
 
 function GGrid:note_ind(row,col)
   local sector=math.ceil(row/2)
-  return wrap(col,params:get(sector.."start"),params:get(sector.."end"))
+  return math.floor(wrap(col,params:get(sector.."start"),params:get(sector.."end")))
 end
 
 function GGrid:grid_key(x,y,z)
@@ -71,9 +74,11 @@ function GGrid:key_press(row,col,on)
 
   local sector=math.ceil(row/2)
   if on then
-    note_on(sector,self:note_ind(row,col),true,true)
-  else
-    note_off(self:note_ind(row,col))
+    self.notes_on[row][col]=self:note_ind(row,col)
+    note_on(sector,self.notes_on[row][col],true,true)
+  elseif self.notes_on[row][col]>0 then
+    note_off(self.notes_on[row][col])
+    self.notes_on[row][col]=0
   end
 end
 
