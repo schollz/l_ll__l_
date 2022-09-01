@@ -1,7 +1,6 @@
 -- local pattern_time = require("pattern")
 local GGrid={}
 
-
 function GGrid:new(args)
   local m=setmetatable({},{__index=GGrid})
   local args=args==nil and {} or args
@@ -27,7 +26,6 @@ function GGrid:new(args)
     end
   end
 
-
   -- keep track of pressed buttons
   m.pressed_buttons={}
 
@@ -45,8 +43,8 @@ function GGrid:new(args)
 end
 
 function GGrid:note_ind(row,col)
-local sector=math.ceil(row/2)
-return wrap(col,params:get(sector.."start"),params:get(sector.."end"))
+  local sector=math.ceil(row/2)
+  return wrap(col,params:get(sector.."start"),params:get(sector.."end"))
 end
 
 function GGrid:grid_key(x,y,z)
@@ -62,13 +60,12 @@ function GGrid:key_press(row,col,on)
   end
 
   local sector=math.ceil(row/2)
-  if on then 
-	  note_on(sector,self:note_ind(row,col),true,true)
+  if on then
+    note_on(sector,self:note_ind(row,col),true,true)
   else
-	  note_off(sector,self:note_ind(row,col))
+    note_off(sector,self:note_ind(row,col))
   end
 end
-
 
 function GGrid:get_visual()
   -- clear visual
@@ -81,7 +78,6 @@ function GGrid:get_visual()
     end
   end
 
-
   -- illuminate currently pressed button
   for k,_ in pairs(self.pressed_buttons) do
     local row,col=k:match("(%d+),(%d+)")
@@ -90,7 +86,6 @@ function GGrid:get_visual()
 
   return self.visual
 end
-
 
 function GGrid:grid_redraw()
   self.g:all(0)

@@ -1,4 +1,4 @@
-/note//note/ v1.0.0
+-- v1.0.0
 -- play a musical spectrum
 --
 -- llllllll.co/t/|_||__|_
@@ -34,7 +34,7 @@ function init()
       table.insert(clocks,clock.run(function()
         clock.sleep((sector-1)*3+(sector>1 and i or 0)+math.random())
         while true do
-		local duration=note_on(sector)
+          local duration=note_on(sector)
           clock.sleep(duration)
         end
       end))
@@ -55,30 +55,30 @@ function init()
 end
 
 function note_off(sector,note_ind)
-engine.emit_off(note_ind)
+  engine.emit_off(note_ind)
 end
 
 function note_on(sector,node_ind,force,gate)
-        if note_ind==nil then 
-		note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
-	end
-          local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
-          local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
-          local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
-          local duration=attack+decay
-	  if voice_count<voice_limit or force==true then 
-	  voice_count=voice_count+1
-          engine[gate and "emit_on" or "emit"](note_ind,notes[note_ind],attack,decay,ring,params:get(sector.."amp"))
-          for j=1,2 do
-            local k=j*2-1
-            if params:get("crow_"..j.."_sector")==sector then
-              crow.output[k].volts=(notes[note_ind]-24)/12
-              crow.output[k+1].action=string.format("{to(10,%3.5f),to(0,%3.5f)}",attack,decay)
-              crow.output[k+1].execute()
-            end
-          end
- 	 end
- return duration
+  if note_ind==nil then
+    note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
+  end
+  local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
+  local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
+  local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
+  local duration=attack+decay
+  if voice_count<voice_limit or force==true then
+    voice_count=voice_count+1
+    engine[gate and "emit_on" or "emit"](note_ind,notes[note_ind],attack,decay,ring,params:get(sector.."amp"))
+    for j=1,2 do
+      local k=j*2-1
+      if params:get("crow_"..j.."_sector")==sector then
+        crow.output[k].volts=(notes[note_ind]-24)/12
+        crow.output[k+1].action=string.format("{to(10,%3.5f),to(0,%3.5f)}",attack,decay)
+        crow.output[k+1].execute()
+      end
+    end
+  end
+  return duration
 end
 
 function build_scale()
@@ -202,14 +202,14 @@ function note_pos(ind)
 end
 
 function osc.event(path,args,from)
-	if path=="amplitude" then 
-  local note_ind=tonumber(args[1])
-  local env=tonumber(args[2])
-  note_env[note_ind]=env
-  elseif path=="freed" then 
-  local note_ind=tonumber(args[1])
-  note_env[note_ind]=0
-  voice_count=voice_count-1
+  if path=="amplitude" then
+    local note_ind=tonumber(args[1])
+    local env=tonumber(args[2])
+    note_env[note_ind]=env
+  elseif path=="freed" then
+    local note_ind=tonumber(args[1])
+    note_env[note_ind]=0
+    voice_count=voice_count-1
   end
 end
 
@@ -217,7 +217,7 @@ function cleanup()
   for k,v in pairs(rev_params) do
     params:set(k,v)
   end
-  for _, c in ipairs(clocks) do 
+  for _,c in ipairs(clocks) do
     clock.cancel(c)
   end
 end
