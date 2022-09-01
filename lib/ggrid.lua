@@ -31,7 +31,7 @@ function GGrid:new(args)
 
   -- grid refreshing
   m.grid_refresh=metro.init()
-  m.grid_refresh.time=0.03
+  m.grid_refresh.time=0.1
   m.grid_refresh.event=function()
     if m.grid_on then
       m:grid_redraw()
@@ -40,6 +40,16 @@ function GGrid:new(args)
   m.grid_refresh:start()
 
   return m
+end
+
+function GGrid:compute_note_inds()
+  self.note_ind_row_col={}
+  for row=1,8 do
+    self.note_ind_row_col[row]={}
+    for col=1,16 do
+      self.note_ind_row_col[row][col]=self:note_ind(row,col)
+    end
+  end
 end
 
 function GGrid:note_ind(row,col)
@@ -63,7 +73,7 @@ function GGrid:key_press(row,col,on)
   if on then
     note_on(sector,self:note_ind(row,col),true,true)
   else
-    note_off(sector,self:note_ind(row,col))
+    note_off(self:note_ind(row,col))
   end
 end
 
@@ -74,6 +84,16 @@ function GGrid:get_visual()
       self.visual[row][col]=self.visual[row][col]-1
       if self.visual[row][col]<0 then
         self.visual[row][col]=0
+      end
+    end
+  end
+
+  -- figure out which keys are which notes
+  if self.note_ind_row_col~=nil then
+    for row=1,8 do
+      for col=1,16 do
+        local note=self:note_ind(row,col)
+        self.visual[row][col]=util.clamp(math.floor(note_env[self.note_ind_row_col[row][col]]*30),0,15)
       end
     end
   end

@@ -52,6 +52,8 @@ function init()
   norns.enc.sens(2,6)
   norns.enc.sens(3,6)
 
+  g_=grid_:new()
+
   hs.init()
   initialize_params()
   local voices={2,3,3,1}
@@ -147,6 +149,9 @@ function initialize_params()
         controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
       formatter=pram.formatter}
       params:set_action(i..pram.id,function(v)
+        if pram.id=="start" or pram.id=="end" then
+          g_:compute_note_inds()
+        end
       end)
     end
   end
