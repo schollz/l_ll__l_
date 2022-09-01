@@ -32,8 +32,9 @@ function init()
   for sector=1,4 do
     for i=1,voices[sector] do
       table.insert(clocks,clock.run(function()
-        clock.sleep((sector-1)*3+(sector>1 and i or 0)+math.random())
+        --clock.sleep((sector-1)*3+(sector>1 and i or 0)+math.random())
         while true do
+          print("note_on",sector)
           local duration=note_on(sector)
           clock.sleep(duration)
         end
@@ -58,21 +59,25 @@ function note_off(sector,note_ind)
   engine.emit_off(note_ind)
 end
 
-function note_on(sector,node_ind,force,gate)
-  if note_ind==nil then
-    note_ind=math.random(params:get(sector.."start"),params:get(sector.."end"))
+function note_on(sector,node_indy,force,gate)
+  print(sector,node_indy)
+  if node_indy==nil then
+    node_indy=math.random(params:get(sector.."start"),params:get(sector.."end"))
+    print(node_indy,params:get(sector.."start"),params:get(sector.."end"))
   end
+  print(sector,node_indy)
   local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
   local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
   local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
   local duration=attack+decay
   if voice_count<voice_limit or force==true then
     voice_count=voice_count+1
-    engine[gate and "emit_on" or "emit"](note_ind,notes[note_ind],attack,decay,ring,params:get(sector.."amp"))
+    print(node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"))
+    engine[gate and "emit_on" or "emit"](node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"))
     for j=1,2 do
       local k=j*2-1
       if params:get("crow_"..j.."_sector")==sector then
-        crow.output[k].volts=(notes[note_ind]-24)/12
+        crow.output[k].volts=(notes[node_indy]-24)/12
         crow.output[k+1].action=string.format("{to(10,%3.5f),to(0,%3.5f)}",attack,decay)
         crow.output[k+1].execute()
       end

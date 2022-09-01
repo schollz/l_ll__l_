@@ -16,7 +16,16 @@ Engine_EmissionSpectrum : CroneEngine {
     *new { arg context, doneCallback;
         ^super.new(context, doneCallback);
     }
-
+ 
+    turn_off {
+      arg id;
+      if (syns.at(id).notNil,{
+        if (syns.at(id).isRunning,{
+          syns.at(id).set(\gate,0);
+        });
+      });
+    }
+    
     alloc {
         // EmissionSpectrum specific v0.0.1
         syns=Dictionary.new();
@@ -123,15 +132,7 @@ Engine_EmissionSpectrum : CroneEngine {
 
         synNoise=Synth.head(context.server,"noise",[\out,busNoise]);
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
- 
-        turn_off {
-          arg id;
-          if (syns.at(id).notNil,{
-            if (syns.at(id).isRunning,{
-              syns.at(id).set(\gate,0);
-            });
-          });
-        }
+
 
         this.addCommand("emit_off","i",{arg msg;
           var id=msg[1];
