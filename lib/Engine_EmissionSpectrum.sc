@@ -25,7 +25,7 @@ Engine_EmissionSpectrum : CroneEngine {
         });
       });
     }
-    
+
     alloc {
         // EmissionSpectrum specific v0.0.1
         syns=Dictionary.new();
@@ -136,7 +136,7 @@ Engine_EmissionSpectrum : CroneEngine {
 
         this.addCommand("emit_off","i",{arg msg;
           var id=msg[1];
-          turn_off(id);
+          this.turn_off(id);
         });
 
         this.addCommand("emit_on","ifffff",{arg msg;
@@ -147,7 +147,7 @@ Engine_EmissionSpectrum : CroneEngine {
             var ring=msg[5];
             var amp=msg[6];
             var id=note_ind;
-            turn_off(id);
+            this.turn_off(id);
             syns.put(id,Synth.before(synMixer,"klank_man",[
                 \out,busMixer,
                 \in,busNoise,
