@@ -63,8 +63,12 @@ function init()
       table.insert(clocks,clock.run(function()
         clock.sleep(((sector-1)*3+(sector>1 and i or 0)+math.random())/2)
         while true do
-          local duration=note_on(sector)
-          clock.sleep(duration)
+          if params:get("generative")==2 then
+            local duration=note_on(sector)
+            clock.sleep(duration)
+          else
+            clock.sleep(1)
+          end
         end
       end))
     end
@@ -184,6 +188,7 @@ function initialize_params()
     end)
   end
 
+  params:add_option("generative","generative",{"off","on"},2)
   params:bang()
 end
 
