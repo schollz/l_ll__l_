@@ -87,7 +87,7 @@ Engine_EmissionSpectrum : CroneEngine {
             snd=snd/20*amp;
             snd=snd.tanh*env_main;
 
-            SendReply.kr(Impulse.kr(10),"/oscAmplitude",[
+            SendReply.kr(Impulse.kr(ArrayMin.kr([30/duration,10]))+start,"/oscAmplitude",[
                 note_ind,
                 env_main*env
             ]);
@@ -114,7 +114,7 @@ Engine_EmissionSpectrum : CroneEngine {
             snd=snd/20*amp;
             snd=snd.tanh*env;
 
-            SendReply.kr(Impulse.kr(10),"/oscAmplitude",[
+            SendReply.kr(Impulse.kr(ArrayMin.kr([30/duration,10]))+start,"/oscAmplitude",[
                 note_ind,
                 env
             ]);
