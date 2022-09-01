@@ -92,6 +92,7 @@ Engine_EmissionSpectrum : CroneEngine {
                 env_main*env
             ]);
 
+            FreeSelf.kr(TDelay.kr(Impulse.kr(0),45));
             DetectSilence.ar(snd,0.01,2,doneAction:2);
             Out.ar(out,snd);
         }).add;
@@ -118,6 +119,7 @@ Engine_EmissionSpectrum : CroneEngine {
                 env
             ]);
 
+            FreeSelf.kr(TDelay.kr(Impulse.kr(0),45));
             DetectSilence.ar(snd,0.01,2,doneAction:2);
             Out.ar(out,snd);
         }).add;

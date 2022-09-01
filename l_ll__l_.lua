@@ -1,4 +1,4 @@
--- v1.0.0
+-- | ||  | v1.0.0
 -- play a musical spectrum
 --
 -- llllllll.co/t/|_||__|_
