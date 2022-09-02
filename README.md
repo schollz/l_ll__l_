@@ -25,7 +25,7 @@ if you are using crow, you can assign crow to specific sectors for [emitting pit
 ## Install
 
 ```
-;install https://github.dev/schollz/l_ll__l_
+;install https://github.com/schollz/l_ll__l_
 ```
 
 
