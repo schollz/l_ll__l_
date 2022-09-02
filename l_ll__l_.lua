@@ -20,6 +20,7 @@ max_note_num=12*4
 voice_limit=10
 voice_count=0
 midi_notes={}
+debounce_fn={}
 
 function note_off(note_indy)
   engine.emit_off(note_indy)
@@ -82,6 +83,7 @@ function init()
   clock.run(function()
     while true do
       clock.sleep(1/10)
+      debounce_params()
       for i,mn in ipairs(midi_notes) do 
 	      if not mn.dead then 
 	midi_notes[i].duration=midi_notes[i].duration+0.1
@@ -197,7 +199,11 @@ function initialize_params()
       formatter=pram.formatter}
       params:set_action(i..pram.id,function(v)
         if pram.id=="start" or pram.id=="end" then
+        debounce_fn[id..pram.id]={
+          3,function()
           g_:compute_note_inds()
+          end,
+        }
         end
       end)
     end
@@ -375,4 +381,22 @@ function redraw()
   end
 
   screen.update()
+end
+function debounce_params()
+  for k,v in pairs(debounce_fn) do
+    if v~=nil and v[1]~=nil and v[1]>0 then
+      v[1]=v[1]-1
+      if v[1]~=nil and v[1]==0 then
+        if v[2]~=nil then
+          local status,err=pcall(v[2])
+          if err~=nil then
+            print(status,err)
+          end
+        end
+        debounce_fn[k]=nil
+      else
+        debounce_fn[k]=v
+      end
+    end
+  end
 end
