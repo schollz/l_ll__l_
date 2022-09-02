@@ -44,7 +44,7 @@ Engine_EmissionSpectrum : CroneEngine {
             // snd = Compander.ar(snd, sndSC*sidechain_mult, 
             //     compress_thresh, 1, compress_level, 
             //     compress_attack, compress_release);
-            snd = HPF.ar(snd, 40);
+            snd = HPF.ar(snd, 20);
             //snd = LPF.ar(snd,2000);
             6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
 
@@ -121,7 +121,7 @@ Engine_EmissionSpectrum : CroneEngine {
                 env
             ]);
 
-            FreeSelf.kr(TDelay.kr(Impulse.kr(0),45));
+            FreeSelf.kr(TDelay.kr(Impulse.kr(0),20));
             DetectSilence.ar(snd,0.01,2,doneAction:2);
             Out.ar(out,snd);
         }).add;
