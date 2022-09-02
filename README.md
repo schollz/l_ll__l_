@@ -8,6 +8,7 @@ interact with a musical emission spectrum.
 
 - norns
 - crow (optional)
+- grid (optional)
 
 ## Documentation
 
@@ -15,7 +16,9 @@ interact with a musical emission spectrum.
 - E2/E3 modifies sector position
 - K1+EX modifies parameters
 
-each line represents a note on the spectrum. the spectrum is divided into 4 "sectors". the sectors emit notes based on their space along the spectrum (which is changed with E2/E3). each sector has parameters that can be modified with K1+E1/2/3, and more in the parameters menu.
+
+
+the spectrum is divided into 4 "sectors". the sectors emit notes based on their space along the spectrum (which is changed with E2/E3) - each line represents a note. each sector has parameters that can be modified with K1+E1/2/3, and more in the parameters menu.
 
 if you are using crow, you can assign crow to specific sectors for [emitting pitches directly](https://www.instagram.com/p/Ch4daaDAdkG/) from spectrum emissions.
 
@@ -25,8 +28,4 @@ if you are using crow, you can assign crow to specific sectors for [emitting pit
 ;install https://github.com/schollz/_l__l____
 ```
 
-## TODO
 
-- make a new engine synthdef for the grid/midi (for use with note_ons/offs)
-- grid each 2 rows is a different sector
-- midi - each note corresponds to a sector, i.e. sector index = midi note % 4, note index = ((midi note % 56)
