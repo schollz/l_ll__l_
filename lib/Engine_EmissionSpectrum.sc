@@ -7,7 +7,11 @@ Engine_EmissionSpectrum : CroneEngine {
     var synMixer;
     var busMixer;
     var synNoise;
+    var synInput;
+    var synBuffer;
     var busNoise;
+    var busInput;
+    var busBuffer;
     var busSidechain;
     var oscAmplitude;
     var syns;
@@ -49,6 +53,16 @@ Engine_EmissionSpectrum : CroneEngine {
             6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
 
             Out.ar(out,snd/10);
+        }).add;
+        
+        SynthDef("buffer",{
+            arg out,amp=1.0,buf=0;
+            Out.ar(out,PlayBuf.ar(2,buf,loop:1)*amp);
+        }).add;
+
+        SynthDef("input",{
+            arg out,amp=1.0;
+            Out.ar(out,SoundIn.ar([0,1])*amp);
         }).add;
 
         SynthDef("noise",{
@@ -130,11 +144,15 @@ Engine_EmissionSpectrum : CroneEngine {
 
         busMixer=Bus.audio(context.server,2);
         busNoise=Bus.audio(context.server,2);
+        busBuffer=Bus.audio(context.server,2);
+        busInput=Bus.audio(context.server,2);
         busSidechain=Bus.audio(context.server,2);
 
         context.server.sync;
 
         synNoise=Synth.head(context.server,"noise",[\out,busNoise]);
+        synInput=Synth.head(context.server,"input",[\out,busInput]);
+        synBuffer=Synth.head(context.server,"buffer",[\out,busBuffer]);
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
 
 
@@ -143,14 +161,16 @@ Engine_EmissionSpectrum : CroneEngine {
           this.turn_off(id);
         });
 
-        this.addCommand("emit_on","ifffff",{arg msg;
+        this.addCommand("emit_on","iffffff",{arg msg;
             var note_ind=msg[1];
             var note=msg[2];
             var attack=msg[3];
             var decay=msg[4];
             var ring=msg[5];
             var amp=msg[6];
+            var reson=msg[7];
             var id=note_ind;
+            // todo collect infromation for the resonator
             this.turn_off(id);
             syns.put(id,Synth.before(synMixer,"klank_man",[
                 \out,busMixer,
@@ -169,25 +189,33 @@ Engine_EmissionSpectrum : CroneEngine {
             NodeWatcher.register(syns.at(id));
         });
 
-        this.addCommand("emit","ifffff",{arg msg;
+        this.addCommand("emit","iffffff",{arg msg;
             var note_ind=msg[1];
             var note=msg[2];
             var attack=msg[3];
             var decay=msg[4];
             var ring=msg[5];
             var amp=msg[6];
+            var reson=msg[7];
+            var busin=busNoise;
             var id=300+10000000.rand;
             var doplay=true;
-      if (syns.at(note_ind).notNil,{
-        if (syns.at(note_ind).isRunning,{
-	doplay=false;
-        });
-      });
+            if (syns.at(note_ind).notNil,{
+              if (syns.at(note_ind).isRunning,{
+                doplay=false;
+              });
+            });
+            if (reson>1.9,{
+                if (reson>2.9,{
+                  busin=busBuffer;
+                },{
+                  busin=busInput;
+                });
+            });
 	    if (doplay,{
             syns.put(id,Synth.before(synMixer,"klank",[
                 \out,busMixer,
-                \in,busNoise,
-                \note_ind,note_ind,
+                \in,busin,
                 \note,note,
                 \attack,attack,
                 \decay,decay,
@@ -236,7 +264,11 @@ Engine_EmissionSpectrum : CroneEngine {
         });
         synMixer.free;
         synNoise.free;
+        synInput.free;
+        synBuffer.free;
         busNoise.free;
+        busInput.free;
+        busBuffer.free;
         busMixer.free;
         busSidechain.free;
         oscAmplitude.free;

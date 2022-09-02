@@ -36,7 +36,7 @@ function note_on(sector,node_indy,force,gate)
   local duration=attack+decay
   if voice_count<voice_limit or force==true then
     voice_count=voice_count+1
-    engine[gate and "emit_on" or "emit"](node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"))
+    engine[gate and "emit_on" or "emit"](node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
     for j=1,2 do
       local k=j*2-1
       if params:get("crow_"..j.."_sector")==sector then
@@ -239,7 +239,9 @@ function initialize_params()
     end)
   end
 
+  params:add_option("resonator","resonator",{"noise","input","buffer"})
   params:add_option("generative","generative",{"off","on"},2)
+
   params:bang()
 end
 
