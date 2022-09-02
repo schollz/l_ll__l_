@@ -148,6 +148,9 @@ function initialize_params()
           -- OP-1 fix for transport
         elseif msg.type=="stop" then
         elseif msg.type=="note_on" then
+		-- TODO: find closeset note in scale
+		-- emit it
+    		-- engine.emit_on(node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
         elseif msg.type=="note_off" then
         end
       end
