@@ -19,6 +19,7 @@ engine.name="EmissionSpectrum"
 max_note_num=12*4
 voice_limit=10
 voice_count=0
+midi_notes={}
 
 function note_off(note_indy)
   engine.emit_off(note_indy)
@@ -42,6 +43,10 @@ function note_on(sector,node_indy,force,gate)
         crow.output[k+1].action=string.format("{to(10,%3.5f),to(0,%3.5f)}",attack,decay)
         crow.output[k+1].execute()
       end
+    end
+    if params:get(sector.."midi_out")>1 then
+	table.insert(midi_notes,{device=params:get(sector.."midi_out")-1,ch=params:get(sector.."midi_ch"),note=notes[node_indy],attack=attack,duration=0,dead=false}) -- insert note that needs to be gated off later
+	midi_device[params:get(sector.."midi_out")-1].note_on(notes[node_indy],ring*127,params:get(sector.."midi_ch"))
     end
   end
   return duration
@@ -77,6 +82,15 @@ function init()
   clock.run(function()
     while true do
       clock.sleep(1/10)
+      for i,mn in ipairs(midi_notes) do 
+	      if not mn.dead then 
+	midi_notes[i].duration=midi_notes[i].duration+0.1
+	if midi_notes[i].duration>mn.attack then 
+		midi_device[mn.device]:note_off(mn.note,0,mn.ch)
+	midi_notes[i].dead=true
+	end
+end
+      end
       redraw()
     end
   end)
@@ -111,7 +125,7 @@ function initialize_params()
 
   -- setup midi
   midi_device={}
-  midi_device_list={}
+  midi_device_list={"none"}
   for i,dev in pairs(midi.devices) do
     if dev.port~=nil then
       local connection=midi.connect(dev.port)
@@ -173,7 +187,7 @@ function initialize_params()
       {id="ring mean",name="ring",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
       {id="ring std",name="ring spread",min=0.01,max=1,exp=false,div=0.01,default=0.15,formatter=function(param) return param:get() end},
     }
-    params:add_group("SECTOR "..i,#params_menu)
+    params:add_group("SECTOR "..i,#params_menu+2)
     for _,pram in ipairs(params_menu) do
       params:add{
         type="control",
@@ -187,6 +201,8 @@ function initialize_params()
         end
       end)
     end
+    params:add_option(i.."midi_out","midi out",midi_device_list,1)
+    params:add_number(i.."midi_ch","midi ch",1,1,16)
   end
 
   -- setup scales
