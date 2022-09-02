@@ -22,6 +22,13 @@ the spectrum is divided into 4 "sectors". the sectors emit notes based on their 
 
 if you are using crow, you can assign crow to specific sectors for [emitting pitches directly](https://www.instagram.com/p/Ch4daaDAdkG/) from spectrum emissions.
 
+
+## Todo
+
+- midi in/out
+- input/buffer as resonator activator?
+- playing bandpassed-samples?
+
 ## Install
 
 ```
