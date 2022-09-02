@@ -109,6 +109,35 @@ function initialize_params()
   params:set("rev_low_time",7)
   params:set("rev_mid_time",11)
 
+  -- setup midi
+  midi_device={}
+  midi_device_list={}
+  for i,dev in pairs(midi.devices) do
+    if dev.port~=nil then
+      local connection=midi.connect(dev.port)
+      local name=string.lower(dev.name).." "..i
+      print("adding "..name.." as midi device")
+      table.insert(midi_device_list,name)
+      table.insert(midi_device,{
+        name=name,
+        note_on=function(id_,note,vel,ch) connection:note_on(note,vel,ch) end,
+        note_off=function(id_,note,vel,ch) connection:note_off(note,vel,ch) end,
+      })
+      connection.event=function(data)
+        local msg=midi.to_msg(data)
+        if msg.type=="clock" then
+          do return end
+        end
+        if msg.type=='start' or msg.type=='continue' then
+          -- OP-1 fix for transport
+        elseif msg.type=="stop" then
+        elseif msg.type=="note_on" then
+        elseif msg.type=="note_off" then
+        end
+      end
+    end
+  end
+
   -- setup crow
   params:add_group("CROW",4)
   params:add_option("crow_1_sector","crow 1+2 sector",{1,2,3,4},3)
