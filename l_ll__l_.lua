@@ -128,6 +128,15 @@ function initialize_params()
   -- setup midi
   midi_device={}
   midi_device_list={"none"}
+  local closest_note_ind=function(note)
+		local closest_ind={1,100000}
+		for i,note2 in ipairs(notes) do 
+			if math.abs(note2-note)<closest_ind[2] then 
+				closest_ind={i,math.abs(note2-note)}
+			end
+		end
+return closest_ind[1]
+  end
   for i,dev in pairs(midi.devices) do
     if dev.port~=nil then
       local connection=midi.connect(dev.port)
@@ -151,6 +160,8 @@ function initialize_params()
 		-- TODO: find closeset note in scale
 		-- emit it
     		-- engine.emit_on(node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
+		local note_indy=closest_note_ind(msg.note)
+		note_on(params:get("midi_in_sector"),note_indy,true,true)
         elseif msg.type=="note_off" then
         end
       end
