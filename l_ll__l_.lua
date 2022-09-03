@@ -16,6 +16,7 @@ hs=include('lib/halfsecond')
 MusicUtil=require "musicutil"
 engine.name="EmissionSpectrum"
 sequins=require("sequins")
+er=require("er")
 
 max_note_num=12*4
 voice_limit=11
@@ -82,7 +83,6 @@ function init()
     end
   end
 
-  kick_amp=0.2
   kick_seq=sequins{true,false,false,false}
   beats=0
   clock.run(function()
@@ -93,7 +93,16 @@ function init()
         engine.reset_clock()
       end
       if kick_seq() then
-        engine.kick(40,6,0.05,1,kick_amp,0.3,0.8,0.15,0)
+        engine.kick(
+          params:get("basefreq"),
+          params:get("ratio"),
+          params:get("sweeptime")/1000,
+          params:get("preamp"),
+          params:get("kick_amp"),
+          params:get("decay1")/1000,
+          params:get("decay1L")/1000,
+          params:get("decay2")/1000,
+        params:get("clicky")/1000)
       end
     end
   end)
@@ -174,8 +183,10 @@ function initialize_params()
     end
     return closest_ind[1]
   end
+  local j=0
   for i,dev in pairs(midi.devices) do
     if dev.port~=nil then
+      j=j+1
       local connection=midi.connect(dev.port)
       local name=string.lower(dev.name).." "..i
       print("adding "..name.." as midi device")
@@ -190,19 +201,38 @@ function initialize_params()
         if msg.type=="clock" then
           do return end
         end
-        print(msg.type=="note_on",params:get("midi_in")-1,i)
         if msg.type=='start' or msg.type=='continue' then
           -- OP-1 fix for transport
         elseif msg.type=="stop" then
-        elseif msg.type=="note_on" and params:get("midi_in")==i then
+        elseif msg.type=="note_on" and params:get("midi_in")==j+1 then
           local note_indy=closest_note_ind(msg.note)
           print(string.format("[%s] note_on: %d",name,msg.note))
           note_on(params:get("midi_in_sector"),note_indy,true,true,msg.note)
-        elseif msg.type=="note_off" and params:get("midi_in")==i then
+        elseif msg.type=="note_off" and params:get("midi_in")==j+1 then
           print(string.format("[%s] note_off: %d",name,msg.note))
           note_off(closest_note_ind(msg.note))
         end
       end
+    end
+  end
+
+  -- setup crow
+  params:add_group("CROW",4)
+  params:add_option("crow_1_sector","crow 1+2 sector",{1,2,3,4},3)
+  params:add_option("crow_2_sector","crow 3+4 sector",{1,2,3,4},2)
+  prams={{id="crow_slew",name="crow slew",min=0.0,max=10,exp=false,div=0.1,default=0}}
+  for _,pram in ipairs(prams) do
+    for i=1,2 do
+      params:add{
+        type="control",
+        id=i..pram.id,
+        name=pram.name.." "..(i*2)-1,
+        controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
+        formatter=pram.formatter,
+      }
+      params:set_action(i..pram.id,function(v)
+        crow.output[i*2-1].slew=v
+      end)
     end
   end
 
@@ -228,7 +258,7 @@ function initialize_params()
       }
     end)
   end
-  local gating_options={"8888","48848","-22-26-26-22-26","-288444","-22-62-64","-24444444-2","-248484-2","-266484-2","-26648-112-2","-28-11284-112-2","-246-248-22-2","-48848","-4824248","-44-42-2248","-48844-11-11","-4884-11-11-11-11","-4884-11-22-11","-42-22-284-11-22-11","-4884-11-11-11-11","-4-11-11-2-284-11-11-11-11"}
+  local gating_options={"-48848","8888","48848","-22-26-26-22-26","-288444","-22-62-64","-24444444-2","-248484-2","-266484-2","-26648-112-2","-28-11284-112-2","-246-248-22-2","-4824248","-44-42-2248","-48844-11-11","-4884-11-11-11-11","-4884-11-22-11","-42-22-284-11-22-11","-4884-11-11-11-11","-4-11-11-2-284-11-11-11-11"}
   params:add_option("gating_option","gating",gating_options)
   params:set_action("gating_option",function(x)
     debounce_fn["gating"]={
@@ -238,24 +268,39 @@ function initialize_params()
     }
   end)
 
-  -- setup crow
-  params:add_group("CROW",4)
-  params:add_option("crow_1_sector","crow 1+2 sector",{1,2,3,4},3)
-  params:add_option("crow_2_sector","crow 3+4 sector",{1,2,3,4},2)
-  prams={{id="crow_slew",name="crow slew",min=0.0,max=10,exp=false,div=0.1,default=0}}
-  for _,pram in ipairs(prams) do
-    for i=1,2 do
-      params:add{
-        type="control",
-        id=i..pram.id,
-        name=pram.name.." "..(i*2)-1,
-        controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
-        formatter=pram.formatter,
-      }
-      params:set_action(i..pram.id,function(v)
-        crow.output[i*2-1].slew=v
-      end)
-    end
+  -- kick
+  local params_menu={
+    {id="kick_amp",name="amp",min=0,max=4,exp=false,div=0.01,default=0.0,unit="amp"},
+    {id="preamp",name="preamp",min=0,max=4,exp=false,div=0.01,default=1,unit="amp"},
+    {id="basefreq",name="base freq",min=10,max=200,exp=false,div=0.1,default=32.7,unit="Hz"},
+    {id="ratio",name="ratio",min=1,max=20,exp=false,div=1,default=6},
+    {id="sweeptime",name="sweep time",min=0,max=200,exp=false,div=1,default=50,unit="ms"},
+    {id="decay1",name="decay1",min=5,max=2000,exp=false,div=10,default=300,unit="ms"},
+    {id="decay1L",name="decay1L",min=5,max=2000,exp=false,div=10,default=800,unit="ms"},
+    {id="decay2",name="decay2",min=5,max=2000,exp=false,div=10,default=150,unit="ms"},
+    {id="clicky",name="clicky",min=0,max=100,exp=false,div=1,default=0,unit="%"},
+    {id="euc_n",name="euclidean n",min=1,max=128,exp=false,div=1,default=16},
+    {id="euc_k",name="euclidean k",min=0,max=128,exp=false,div=1,default=4},
+    {id="euc_w",name="euclidean w",min=0,max=128,exp=false,div=1,default=0},
+  }
+  params:add_group("KICK",#params_menu)
+  for _,pram in ipairs(params_menu) do
+    params:add{
+      type="control",
+      id=pram.id,
+      name=pram.name,
+      controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
+      formatter=pram.formatter,
+    }
+    params:set_action(pram.id,function(x)
+      if string.find(pram.id,"euc")~=nil then
+        debounce_fn["euc"]={
+          1,function()
+            update_euclidean()
+          end
+        }
+      end
+    end)
   end
 
   local attacks={math.randomn(10,2),math.randomn(7,2),math.randomn(5,1),math.randomn(1.7,0.5)}
@@ -324,16 +369,22 @@ function initialize_params()
     options=scale_names,default=1,
   action=function() build_scale() end}
   params:add{type="number",id="root_note",name="root note",
-    min=0,max=127,default=18,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
+    min=0,max=127,default=12,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
   action=function() build_scale() end}
 
   params:add_option("resonator","resonator",{"noise","input","buffer"},2)
   params:hide("resonator")
   params:add_option("generative","generative",{"off","on"},2)
-  params:add_option("midi_in","midi in",midi_device_list,1)
+  params:add_option("midi_in","midi in",midi_device_list,#midi_device_list)
   params:add_number("midi_in_sector","midi in sector",1,4,4)
 
   params:bang()
+end
+
+function update_euclidean()
+  local euc=er.gen(params:get("euc_k"),params:get("euc_n"),params:get("euc_w"))
+  tab.print(euc)
+  kick_seq:settable(euc)
 end
 
 function update_gating()

@@ -82,9 +82,8 @@ Engine_EmissionSpectrum : CroneEngine {
             var    fcurve = EnvGen.kr(Env([basefreq * ratio, basefreq], [sweeptime], \exp)),
             env = EnvGen.kr(Env([clicky,1, decay1L, 0], [0.0,decay1, decay2], -4), doneAction: Done.freeSelf),
             sig = SinOsc.ar(fcurve, 0.5pi, preamp).distort * env ;
-            sig = sig !2;
-            Out.ar(0,sig*amp);
-            Out.ar(out,sig*4);
+            sig = (sig*amp).tanh!2;
+            Out.ar(out,sig);
         }).add;
 
         SynthDef("play",{
@@ -149,7 +148,7 @@ Engine_EmissionSpectrum : CroneEngine {
             var snd;
             var start=Impulse.kr(0);
             var freq=note.midicps;
-            var env = EnvGen.ar(Env.adsr(attack,1.0,1.0,decay),gate,doneAction:2)*EnvGen.ar(Env.new([1,1,0],[20,2]),start,doneAction:2);
+            var env = EnvGen.ar(Env.adsr(attack,1.0,Rand(0.2,1.0),decay),gate,doneAction:2)*EnvGen.ar(Env.new([1,1,0],[20,2]),start,doneAction:2);
             var duration=attack+decay;
 
             freq = Vibrato.kr(freq,LFNoise1.kr(1).range(1,4),0.005,1.0,1.0,0.95,0.1);
@@ -279,7 +278,7 @@ Engine_EmissionSpectrum : CroneEngine {
             var decay2=msg[8];
             var clicky=msg[9];
             Synth.before(synMixer,"kick",[
-                \out,busSidechain,
+                \out,0,
                 \basefreq,basefreq,
                 \ratio,ratio,
                 \sweeptime,sweeptime,
