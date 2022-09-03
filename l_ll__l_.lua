@@ -82,12 +82,18 @@ function init()
     end
   end
 
+  kick_amp=0.2
   kick_seq=sequins{true,false,false,false}
+  beats=0
   clock.run(function()
     while true do
       clock.sync(1/4)
+      beats=beats+1
+      if (beats-1)%16+1==1 then
+        engine.reset_clock()
+      end
       if kick_seq() then
-        engine.kick(40,6,0.05,1,0,0.3,0.8,0.15,0)
+        engine.kick(40,6,0.05,1,kick_amp,0.3,0.8,0.15,0)
       end
     end
   end)
@@ -140,21 +146,21 @@ end
 
 function initialize_params()
   -- setup reverb parameters to be overwritten
-  rev_params={
-    reverb=2,
-    rev_eng_input=0,
-    rev_return_level=6,
-    rev_low_time=7,
-    rev_mid_time=11
-  }
-  for k,v in pairs(rev_params) do
-    rev_params[k]=params:get(k)
-  end
-  params:set("reverb",2)
-  params:set("rev_eng_input",0)
-  params:set("rev_return_level",6)
-  params:set("rev_low_time",7)
-  params:set("rev_mid_time",11)
+  -- rev_params={
+  --   reverb=2,
+  --   rev_eng_input=0,
+  --   rev_return_level=6,
+  --   rev_low_time=7,
+  --   rev_mid_time=11
+  -- }
+  -- for k,v in pairs(rev_params) do
+  --   rev_params[k]=params:get(k)
+  -- end
+  -- params:set("reverb",2)
+  -- params:set("rev_eng_input",0)
+  -- params:set("rev_return_level",6)
+  -- params:set("rev_low_time",7)
+  -- params:set("rev_mid_time",11)
 
   -- setup midi
   midi_device={}
@@ -200,13 +206,11 @@ function initialize_params()
   end
 
   local params_menu={
-    {id="sidechain_mult",name="amount",min=0,max=8,exp=false,div=0.1,default=0.0},
-    {id="compress_thresh",name="threshold",min=0,max=2,exp=false,div=0.01,default=0.1},
-    {id="compress_level",name="level",min=0,max=2,exp=false,div=0.01,default=0.1},
-    {id="compress_attack",name="attack",min=0.01,max=1,exp=false,div=0.01,default=0.01,formatter=function(param) return (param:get()*1000).." ms" end},
-    {id="compress_release",name="release",min=0.01,max=2,exp=false,div=0.01,default=0.2,formatter=function(param) return (param:get()*1000).." ms" end},
+    {id="gating_amt",name="gating",min=0,max=1,exp=false,div=0.01,default=0.0},
+    {id="gating_strength",name="gating lfo",min=0,max=1,exp=false,div=0.01,default=0.0},
+    {id="gating_period",name="gating lfo period",min=0,max=30,exp=false,div=0.01,default=math.random(1,6),unit="s"},
   }
-  params:add_group("SIDECHAIN",#params_menu)
+  params:add_group("GATING",#params_menu+1)
   for _,pram in ipairs(params_menu) do
     params:add{
       type="control",
@@ -216,9 +220,22 @@ function initialize_params()
       formatter=pram.formatter,
     }
     params:set_action(pram.id,function(v)
-      engine.mixer_set(pram.id,v)
+      debounce_fn["gating"]={
+        3,function()
+          update_gating()
+        end
+      }
     end)
   end
+  local gating_options={"8888","48848","-22-26-26-22-26","-288444","-22-62-64","-24444444-2","-248484-2","-266484-2","-26648-112-2","-28-11284-112-2","-246-248-22-2","-48848","-4824248","-44-42-2248","-48844-11-11","-4884-11-11-11-11","-4884-11-22-11","-42-22-284-11-22-11","-4884-11-11-11-11","-4-11-11-2-284-11-11-11-11"}
+  params:add_option("gating_option","gating",gating_options)
+  params:set_action("gating_option",function(x)
+    debounce_fn["gating"]={
+      3,function()
+        update_gating()
+      end
+    }
+  end)
 
   -- setup crow
   params:add_group("CROW",4)
@@ -318,6 +335,30 @@ function initialize_params()
   params:bang()
 end
 
+function update_gating()
+  local numdash=params:string("gating_option")
+  local vals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+  local isminus=false
+  local i=1
+  for c in numdash:gmatch"." do
+    if c=="-" then
+      isminus=true
+    else
+      if not isminus and i<33 then
+        vals[i]=tonumber(c)*2
+      end
+      i=i+tonumber(c)
+      isminus=false
+    end
+  end
+
+  engine.set_gating(clock.get_tempo(),params:get("gating_amt"),params:get("gating_strength"),params:get("gating_period"),
+    vals[1],vals[2],vals[3],vals[4],vals[5],vals[6],vals[7],vals[8],
+    vals[9],vals[10],vals[11],vals[12],vals[13],vals[14],vals[15],vals[16],
+    vals[17],vals[18],vals[19],vals[20],vals[21],vals[22],vals[23],vals[24],
+  vals[25],vals[26],vals[27],vals[28],vals[29],vals[30],vals[31],vals[32])
+end
+
 -- return a normally distributed variable
 function math.randomn(mu,sigma)
   return math.log(1/math.random())^.5*math.cos(math.pi*math.random())*sigma+mu
@@ -351,9 +392,9 @@ function osc.event(path,args,from)
 end
 
 function cleanup()
-  for k,v in pairs(rev_params) do
-    params:set(k,v)
-  end
+  -- for k,v in pairs(rev_params) do
+  --   params:set(k,v)
+  -- end
   for _,c in ipairs(clocks) do
     clock.cancel(c)
   end

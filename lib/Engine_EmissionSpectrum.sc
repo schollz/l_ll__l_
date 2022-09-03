@@ -43,27 +43,23 @@ Engine_EmissionSpectrum : CroneEngine {
 
 
         SynthDef("mixer",{
-            arg out,in,insc,amp=1,sidechain_mult=2,compress_thresh=0.1,compress_level=0.1,compress_attack=0.01,compress_release=0.15,
-            bpm=120,gating_amt=1.0,gating_period=4,gating_strength=0.0;
+            arg out,in,insc,amp=1,
+            bpm=120,gating_amt=1.0,gating_period=4,gating_strength=0.0,t_trig=1;
             var snd=In.ar(in,2);
             var sndSC=In.ar(insc,2);
-            var mainPhase=Phasor.ar(1,1/context.server.sampleRate,0,1000000);
+            var mainPhase=Phasor.ar(t_trig,1/context.server.sampleRate,0,1000000);
             var thirtySecondNotes=(bpm/60*mainPhase*16).floor;
-            var gating=Demand.kr(Changed.kr(A2K.kr(thirtySecondNotes)),Trig.kr(thirtySecondNotes%128<1),
+            var gating=Demand.kr(Changed.kr(A2K.kr(thirtySecondNotes)),Trig.kr(thirtySecondNotes%128<1)+t_trig,
                 Dseq(NamedControl.kr(\gating_sequence,
                     [16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
                 ),inf));
-            snd = Compander.ar(snd, sndSC*sidechain_mult, 
-                compress_thresh, 1, compress_level, 
-                compress_attack, compress_release);
-
             snd = HPF.ar(snd, 20);
-            //snd = LPF.ar(snd,2000);
+
             6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
 
-            snd=snd*SelectX.ar(Clip.kr(gating_amt+SinOsc.kr(1/gating_period,phase:rrand(0,3),mul:gating_strength),0,1),[DC.ar(1),(1-EnvGen.ar(Env.new([0,1,1,0],[0.01,Latch.kr(gating,gating>0)/64,0.01],\sine),Trig.kr(gating>0,0.01)))]);
+            snd=snd*SelectX.ar(Clip.kr(gating_amt+SinOsc.kr(1/gating_period,phase:Rand(0,3),mul:gating_strength),0,1),[DC.ar(1),(1-EnvGen.ar(Env.new([0,1,1,0],[0.01,Latch.kr(gating,gating>0)/64,0.01],\sine),Trig.kr(gating>0,0.01)))]);
 
-            Out.ar(out,snd*amp/10);
+            Out.ar(out,snd*amp/2);
         }).add;
         
         SynthDef("buffer",{
@@ -100,7 +96,7 @@ Engine_EmissionSpectrum : CroneEngine {
             var env_main = EnvGen.ar(Env.perc(attack,decay),doneAction:2);
             var duration=attack+decay;
  
-            snd = PlayBuf.ar(2,buf,freq/440/2,startPos:rrand(1,frames),loop:1);
+            snd = PlayBuf.ar(2,buf,freq/440/2,startPos:Rand(1,frames),loop:1);
             
             snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.75,0.75));
             snd=snd*amp;
@@ -125,10 +121,10 @@ Engine_EmissionSpectrum : CroneEngine {
             var duration=attack+decay;
 
             var env = EnvGen.kr(Env.linen(
-                rrand(0,duration*100)/100,
-                rrand(0,duration*100)/100, 
-                (rrand(0,duration*100)/100*10), 
-                rrand(0,100)/100 ));
+                Rand(0,duration*100)/100,
+                Rand(0,duration*100)/100, 
+                (Rand(0,duration*100)/100*10), 
+                Rand(0.2,1.0) ));
  
             freq = Vibrato.kr(freq,LFNoise1.kr(1).range(1,4),0.005,1.0,1.0,0.95,0.1);
 
@@ -294,6 +290,23 @@ Engine_EmissionSpectrum : CroneEngine {
                 \decay2,decay2,
                 \clicky,clicky,
             ]).onFree({"freed!"});
+        });
+
+        this.addCommand("set_gating","ffffffffffffffffffffffffffffffffffff", { arg msg;
+            var bpm=msg[1];
+            var gating_amt=msg[2];
+            var gating_strength=msg[3];
+            var gating_period=msg[4];
+            var arr=Array.fill(64,{0});
+            (1..32).do({arg i;
+                arr[(2*i)-1]=msg[i+4];
+            });
+            synMixer.set(\bpm,bpm,\gating_amt,gating_amt,\gating_strength,gating_strength,\gating_period,gating_period);
+            synMixer.setn(\gating_sequence,arr);
+        });
+
+        this.addCommand("reset_clock","",{ arg msg;
+            synMixer.set(\t_trig,1);
         });
 
         // ^ EmissionSpectrum specific
