@@ -15,6 +15,7 @@ Engine_EmissionSpectrum : CroneEngine {
     var busSidechain;
     var oscAmplitude;
     var syns;
+    var bufSample;
     // EmissionSpectrum ^
 
     *new { arg context, doneCallback;
@@ -42,7 +43,7 @@ Engine_EmissionSpectrum : CroneEngine {
 
 
         SynthDef("mixer",{
-            arg out,in,insc,sidechain_mult=2,compress_thresh=0.1,compress_level=0.1,compress_attack=0.01,compress_release=0.15;
+            arg out,in,insc,amp=1,sidechain_mult=2,compress_thresh=0.1,compress_level=0.1,compress_attack=0.01,compress_release=0.15;
             var snd=In.ar(in,2);
             var sndSC=In.ar(insc,2);
             // snd = Compander.ar(snd, sndSC*sidechain_mult, 
@@ -52,7 +53,7 @@ Engine_EmissionSpectrum : CroneEngine {
             //snd = LPF.ar(snd,2000);
             6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
 
-            Out.ar(out,snd/10);
+            Out.ar(out,snd/5*amp);
         }).add;
         
         SynthDef("buffer",{
@@ -80,6 +81,31 @@ Engine_EmissionSpectrum : CroneEngine {
             Out.ar(out, sig);
         }).add;
 
+        SynthDef("play",{
+            arg out=0,buf,amp=1.0,attack=0.5,decay=0.5,note=60,note_ind=0,ring=0.5;
+            var snd;
+            var frames=BufFrames.ir(buf);
+            var start=Impulse.kr(0);
+            var freq=note.midicps;
+            var env_main = EnvGen.ar(Env.perc(attack,decay),doneAction:2);
+            var duration=attack+decay;
+ 
+            snd = PlayBuf.ar(2,buf,freq/440/2,startPos:rrand(1,frames),loop:1);
+            
+            snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.75,0.75));
+            snd=snd*amp;
+            snd=snd.tanh*env_main;
+
+            SendReply.kr(Impulse.kr(ArrayMin.kr([15/attack,15/decay,10])*(env_main<0.99))+start,"/oscAmplitude",[
+                note_ind,
+                env_main
+            ]);
+
+            FreeSelf.kr(TDelay.kr(Impulse.kr(0),45));
+            DetectSilence.ar(snd,0.01,2,doneAction:2);
+            Out.ar(out,snd);
+        }).add;
+
         SynthDef("klank",{
             arg out=0,in,amp=1.0,attack=0.5,decay=0.5,note=60,note_ind=0,ring=0.5;
             var snd;
@@ -96,14 +122,14 @@ Engine_EmissionSpectrum : CroneEngine {
  
             freq = Vibrato.kr(freq,LFNoise1.kr(1).range(1,4),0.005,1.0,1.0,0.95,0.1);
 
-            snd = DynKlank.ar(`[[freq],[env],[ring]], In.ar(in,2) );
+            snd = DynKlank.ar(`[[freq],[env],[ring]], In.ar(in,2));
             snd = SelectX.ar(VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7),[snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)]);
             
             snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.75,0.75));
             snd=snd/20*amp;
             snd=snd.tanh*env_main;
 
-            SendReply.kr(Impulse.kr(ArrayMin.kr([30/duration,10]))+start,"/oscAmplitude",[
+            SendReply.kr(Impulse.kr(ArrayMin.kr([15/attack,15/decay,10])*(env<0.99))+start,"/oscAmplitude",[
                 note_ind,
                 env_main*env
             ]);
@@ -154,7 +180,7 @@ Engine_EmissionSpectrum : CroneEngine {
         synInput=Synth.head(context.server,"input",[\out,busInput]);
         synBuffer=Synth.head(context.server,"buffer",[\out,busBuffer]);
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
-
+        bufSample = Buffer.read(context.server,"/home/we/dust/audio/tehn/1.wav");
 
         this.addCommand("emit_off","i",{arg msg;
           var id=msg[1];
@@ -212,21 +238,27 @@ Engine_EmissionSpectrum : CroneEngine {
                   busin=busInput;
                 });
             });
-	    if (doplay,{
-            syns.put(id,Synth.before(synMixer,"klank",[
-                \out,busMixer,
-                \in,busin,
-                \note,note,
-                \attack,attack,
-                \decay,decay,
-                \ring,ring,
-                \amp,amp
-            ]).onFree({
-                syns.put(id,nil);
-                NetAddr("127.0.0.1", 10111).sendMsg("freed",note_ind);
-            }));
-            NodeWatcher.register(syns.at(id));
-	    });
+            if (doplay,{
+                syns.put(id,Synth.before(synMixer,"klank",[
+                    // \buf,bufSample,
+                    \out,busMixer,                   
+                    \in,busin,
+                    \note,note,
+                    \note_ind,note_ind,
+                    \attack,attack,
+                    \decay,decay,
+                    \ring,ring,
+                    \amp,amp
+                ]).onFree({
+                    syns.put(id,nil);
+                    NetAddr("127.0.0.1", 10111).sendMsg("freed",note_ind);
+                }));
+                NodeWatcher.register(syns.at(id));
+            });
+        });
+
+        this.addCommand("amp","f",{arg msg;
+            synMixer.set(\amp,msg[1]);
         });
 
         this.addCommand("kick","fffffffff",{arg msg;

@@ -46,8 +46,8 @@ function note_on(sector,node_indy,force,gate)
       end
     end
     if params:get(sector.."midi_out")>1 then
-	table.insert(midi_notes,{device=params:get(sector.."midi_out")-1,ch=params:get(sector.."midi_ch"),note=notes[node_indy],attack=attack,duration=0,dead=false}) -- insert note that needs to be gated off later
-	midi_device[params:get(sector.."midi_out")-1].note_on(notes[node_indy],ring*127,params:get(sector.."midi_ch"))
+      table.insert(midi_notes,{device=params:get(sector.."midi_out")-1,ch=params:get(sector.."midi_ch"),note=notes[node_indy],attack=attack,duration=0,dead=false}) -- insert note that needs to be gated off later
+      midi_device[params:get(sector.."midi_out")-1].note_on(notes[node_indy],ring*127,params:get(sector.."midi_ch"))
     end
   end
   return duration
@@ -67,7 +67,7 @@ function init()
   for sector=1,4 do
     for i=1,voices[sector] do
       table.insert(clocks,clock.run(function()
-        clock.sleep(((sector-1)*3+(sector>1 and i or 0)+math.random())/2)
+        -- clock.sleep(((sector-1)*3+(sector>1 and i or 0)+math.random())/2)
         while true do
           if params:get("generative")==2 then
             local duration=note_on(sector)
@@ -84,14 +84,14 @@ function init()
     while true do
       clock.sleep(1/10)
       debounce_params()
-      for i,mn in ipairs(midi_notes) do 
-	      if not mn.dead then 
-	midi_notes[i].duration=midi_notes[i].duration+0.1
-	if midi_notes[i].duration>mn.attack then 
-		midi_device[mn.device]:note_off(mn.note,0,mn.ch)
-	midi_notes[i].dead=true
-	end
-end
+      for i,mn in ipairs(midi_notes) do
+        if not mn.dead then
+          midi_notes[i].duration=midi_notes[i].duration+0.1
+          if midi_notes[i].duration>mn.attack then
+            midi_device[mn.device]:note_off(mn.note,0,mn.ch)
+            midi_notes[i].dead=true
+          end
+        end
       end
       redraw()
     end
@@ -107,6 +107,25 @@ function build_scale()
   notes=MusicUtil.generate_scale_of_length(params:get("root_note"),params:get("scale_mode"),max_note_num)
 end
 
+function debounce_params()
+  for k,v in pairs(debounce_fn) do
+    if v~=nil and v[1]~=nil and v[1]>0 then
+      v[1]=v[1]-1
+      if v[1]~=nil and v[1]==0 then
+        if v[2]~=nil then
+          local status,err=pcall(v[2])
+          if err~=nil then
+            print(status,err)
+          end
+        end
+        debounce_fn[k]=nil
+      else
+        debounce_fn[k]=v
+      end
+    end
+  end
+end
+
 function initialize_params()
   -- setup reverb parameters to be overwritten
   rev_params={
@@ -114,7 +133,7 @@ function initialize_params()
     rev_eng_input=0,
     rev_return_level=6,
     rev_low_time=7,
-    rev_mid_time=11,
+    rev_mid_time=11
   }
   for k,v in pairs(rev_params) do
     rev_params[k]=params:get(k)
@@ -129,13 +148,13 @@ function initialize_params()
   midi_device={}
   midi_device_list={"none"}
   local closest_note_ind=function(note)
-		local closest_ind={1,100000}
-		for i,note2 in ipairs(notes) do 
-			if math.abs(note2-note)<closest_ind[2] then 
-				closest_ind={i,math.abs(note2-note)}
-			end
-		end
-return closest_ind[1]
+    local closest_ind={1,100000}
+    for i,note2 in ipairs(notes) do
+      if math.abs(note2-note)<closest_ind[2] then
+        closest_ind={i,math.abs(note2-note)}
+      end
+    end
+    return closest_ind[1]
   end
   for i,dev in pairs(midi.devices) do
     if dev.port~=nil then
@@ -157,11 +176,11 @@ return closest_ind[1]
           -- OP-1 fix for transport
         elseif msg.type=="stop" then
         elseif msg.type=="note_on" then
-		-- TODO: find closeset note in scale
-		-- emit it
-    		-- engine.emit_on(node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
-		local note_indy=closest_note_ind(msg.note)
-		note_on(params:get("midi_in_sector"),note_indy,true,true)
+          -- TODO: find closeset note in scale
+          -- emit it
+          -- engine.emit_on(node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
+          local note_indy=closest_note_ind(msg.note)
+          note_on(params:get("midi_in_sector"),note_indy,true,true)
         elseif msg.type=="note_off" then
         end
       end
@@ -213,16 +232,16 @@ return closest_ind[1]
       formatter=pram.formatter}
       params:set_action(i..pram.id,function(v)
         if pram.id=="start" or pram.id=="end" then
-        debounce_fn[id..pram.id]={
-          3,function()
-          g_:compute_note_inds()
-          end,
-        }
+          debounce_fn[i..pram.id]={
+            3,function()
+              g_:compute_note_inds()
+            end
+          }
         end
       end)
     end
     params:add_option(i.."midi_out","midi out",midi_device_list,1)
-    params:add_number(i.."midi_ch","midi ch",1,1,16)
+    params:add_number(i.."midi_ch","midi ch",1,16,1)
   end
 
   -- setup scales
@@ -240,6 +259,7 @@ return closest_ind[1]
   -- setup other parameters
   local params_menu={
     {id="timescale",name="timescale",min=0.01,max=10,exp=false,div=0.01,default=1},
+    {id="amp",name="amp",min=0.1,max=10,exp=false,div=0.1,default=1},
   }
   for _,pram in ipairs(params_menu) do
     params:add{
@@ -250,10 +270,13 @@ return closest_ind[1]
       formatter=pram.formatter,
     }
     params:set_action(pram.id,function(v)
+      if engine[pram.id]~=nil then
+        engine[pram.id](v)
+      end
     end)
   end
 
-  params:add_option("resonator","resonator",{"noise","input","buffer"})
+  params:add_option("resonator","resonator",{"noise","input","buffer"},2)
   params:add_option("generative","generative",{"off","on"},2)
 
   params:bang()
@@ -282,6 +305,7 @@ function osc.event(path,args,from)
   if path=="amplitude" then
     local note_ind=tonumber(args[1])
     local env=tonumber(args[2])
+    -- print(args[1],args[2])
     note_env[note_ind]=env
   elseif path=="freed" then
     local note_ind=tonumber(args[1])
@@ -397,22 +421,4 @@ function redraw()
   end
 
   screen.update()
-end
-function debounce_params()
-  for k,v in pairs(debounce_fn) do
-    if v~=nil and v[1]~=nil and v[1]>0 then
-      v[1]=v[1]-1
-      if v[1]~=nil and v[1]==0 then
-        if v[2]~=nil then
-          local status,err=pcall(v[2])
-          if err~=nil then
-            print(status,err)
-          end
-        end
-        debounce_fn[k]=nil
-      else
-        debounce_fn[k]=v
-      end
-    end
-  end
 end
