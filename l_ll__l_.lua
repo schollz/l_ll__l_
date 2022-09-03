@@ -26,28 +26,29 @@ function note_off(note_indy)
   engine.emit_off(note_indy)
 end
 
-function note_on(sector,node_indy,force,gate)
+function note_on(sector,node_indy,force,gate,note_force)
   if node_indy==nil then
     node_indy=math.random(params:get(sector.."start"),params:get(sector.."end"))
   end
   local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
   local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
   local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
+  local note=note_force or notes[node_indy]
   local duration=attack+decay
   if voice_count<voice_limit or force==true then
     voice_count=voice_count+1
-    engine[gate and "emit_on" or "emit"](node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
+    engine[gate and "emit_on" or "emit"](node_indy,note,attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
     for j=1,2 do
       local k=j*2-1
       if params:get("crow_"..j.."_sector")==sector then
-        crow.output[k].volts=(notes[node_indy]-24)/12
+        crow.output[k].volts=(note-24)/12
         crow.output[k+1].action=string.format("{to(10,%3.5f),to(0,%3.5f)}",attack,decay)
         crow.output[k+1].execute()
       end
     end
     if params:get(sector.."midi_out")>1 then
       table.insert(midi_notes,{device=params:get(sector.."midi_out")-1,ch=params:get(sector.."midi_ch"),note=notes[node_indy],attack=attack,duration=0,dead=false}) -- insert note that needs to be gated off later
-      midi_device[params:get(sector.."midi_out")-1].note_on(notes[node_indy],ring*127,params:get(sector.."midi_ch"))
+      midi_device[params:get(sector.."midi_out")-1].note_on(note,math.floor(ring*127),params:get(sector.."midi_ch"))
     end
   end
   return duration
@@ -175,13 +176,13 @@ function initialize_params()
         if msg.type=='start' or msg.type=='continue' then
           -- OP-1 fix for transport
         elseif msg.type=="stop" then
-        elseif msg.type=="note_on" then
-          -- TODO: find closeset note in scale
-          -- emit it
-          -- engine.emit_on(node_indy,notes[node_indy],attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
+        elseif msg.type=="note_on" and params:get("midi_in")-1==i then
           local note_indy=closest_note_ind(msg.note)
-          note_on(params:get("midi_in_sector"),note_indy,true,true)
-        elseif msg.type=="note_off" then
+          print(string.format("[%s] note_on: %d",name,msg.note))
+          note_on(params:get("midi_in_sector"),note_indy,true,true,msg.note)
+        elseif msg.type=="note_off" and params:get("midi_in")-1==i then
+          print(string.format("[%s] note_off: %d",name,msg.note))
+          note_off(closest_note_ind(msg.note))
         end
       end
     end
@@ -278,6 +279,8 @@ function initialize_params()
 
   params:add_option("resonator","resonator",{"noise","input","buffer"},2)
   params:add_option("generative","generative",{"off","on"},2)
+  params:add_option("midi_in","midi in",midi_device_list,1)
+  params:add_number("midi_in_sector","midi in sector",1,4,4)
 
   params:bang()
 end
