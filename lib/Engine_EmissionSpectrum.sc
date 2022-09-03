@@ -139,7 +139,7 @@ Engine_EmissionSpectrum : CroneEngine {
                 env_main*env
             ]);
 
-            DetectSilence.ar(snd,0.01,2,doneAction:2);
+            DetectSilence.ar(snd,0.001,2,doneAction:2);
             Out.ar(out,snd);
         }).add;
         
@@ -165,7 +165,7 @@ Engine_EmissionSpectrum : CroneEngine {
                 env
             ]);
 
-            DetectSilence.ar(snd,0.01,2,doneAction:2);
+            DetectSilence.ar(snd,0.001,2,doneAction:2);
             Out.ar(out,snd);
         }).add;
 
