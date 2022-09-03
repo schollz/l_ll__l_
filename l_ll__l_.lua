@@ -190,14 +190,15 @@ function initialize_params()
         if msg.type=="clock" then
           do return end
         end
+        print(msg.type=="note_on",params:get("midi_in")-1,i)
         if msg.type=='start' or msg.type=='continue' then
           -- OP-1 fix for transport
         elseif msg.type=="stop" then
-        elseif msg.type=="note_on" and params:get("midi_in")-1==i then
+        elseif msg.type=="note_on" and params:get("midi_in")==i then
           local note_indy=closest_note_ind(msg.note)
           print(string.format("[%s] note_on: %d",name,msg.note))
           note_on(params:get("midi_in_sector"),note_indy,true,true,msg.note)
-        elseif msg.type=="note_off" and params:get("midi_in")-1==i then
+        elseif msg.type=="note_off" and params:get("midi_in")==i then
           print(string.format("[%s] note_off: %d",name,msg.note))
           note_off(closest_note_ind(msg.note))
         end
