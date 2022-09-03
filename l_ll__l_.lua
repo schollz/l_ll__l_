@@ -15,9 +15,10 @@ grid_=include("lib/ggrid")
 hs=include('lib/halfsecond')
 MusicUtil=require "musicutil"
 engine.name="EmissionSpectrum"
+sequins=require("sequins")
 
 max_note_num=12*4
-voice_limit=10
+voice_limit=11
 voice_count=0
 midi_notes={}
 debounce_fn={}
@@ -80,6 +81,16 @@ function init()
       end))
     end
   end
+
+  kick_seq=sequins{true,false,false,false}
+  clock.run(function()
+    while true do
+      clock.sync(1/4)
+      if kick_seq() then
+        engine.kick(40,6,0.05,1,0,0.3,0.8,0.15,0)
+      end
+    end
+  end)
 
   clock.run(function()
     while true do
@@ -188,6 +199,27 @@ function initialize_params()
     end
   end
 
+  local params_menu={
+    {id="sidechain_mult",name="amount",min=0,max=8,exp=false,div=0.1,default=0.0},
+    {id="compress_thresh",name="threshold",min=0,max=2,exp=false,div=0.01,default=0.1},
+    {id="compress_level",name="level",min=0,max=2,exp=false,div=0.01,default=0.1},
+    {id="compress_attack",name="attack",min=0.01,max=1,exp=false,div=0.01,default=0.01,formatter=function(param) return (param:get()*1000).." ms" end},
+    {id="compress_release",name="release",min=0.01,max=2,exp=false,div=0.01,default=0.2,formatter=function(param) return (param:get()*1000).." ms" end},
+  }
+  params:add_group("SIDECHAIN",#params_menu)
+  for _,pram in ipairs(params_menu) do
+    params:add{
+      type="control",
+      id=pram.id,
+      name=pram.name,
+      controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
+      formatter=pram.formatter,
+    }
+    params:set_action(pram.id,function(v)
+      engine.mixer_set(pram.id,v)
+    end)
+  end
+
   -- setup crow
   params:add_group("CROW",4)
   params:add_option("crow_1_sector","crow 1+2 sector",{1,2,3,4},3)
@@ -245,22 +277,10 @@ function initialize_params()
     params:add_number(i.."midi_ch","midi ch",1,16,1)
   end
 
-  -- setup scales
-  scale_names={}
-  for i=1,#MusicUtil.SCALES do
-    table.insert(scale_names,string.lower(MusicUtil.SCALES[i].name))
-  end
-  params:add{type="option",id="scale_mode",name="scale mode",
-    options=scale_names,default=1,
-  action=function() build_scale() end}
-  params:add{type="number",id="root_note",name="root note",
-    min=0,max=127,default=18,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
-  action=function() build_scale() end}
-
   -- setup other parameters
   local params_menu={
+    {id="amp",name="amp",min=0.01,max=10,exp=false,div=0.01,default=0.5},
     {id="timescale",name="timescale",min=0.01,max=10,exp=false,div=0.01,default=1},
-    {id="amp",name="amp",min=0.1,max=10,exp=false,div=0.1,default=1},
   }
   for _,pram in ipairs(params_menu) do
     params:add{
@@ -277,7 +297,20 @@ function initialize_params()
     end)
   end
 
+  -- setup scales
+  scale_names={}
+  for i=1,#MusicUtil.SCALES do
+    table.insert(scale_names,string.lower(MusicUtil.SCALES[i].name))
+  end
+  params:add{type="option",id="scale_mode",name="scale mode",
+    options=scale_names,default=1,
+  action=function() build_scale() end}
+  params:add{type="number",id="root_note",name="root note",
+    min=0,max=127,default=18,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
+  action=function() build_scale() end}
+
   params:add_option("resonator","resonator",{"noise","input","buffer"},2)
+  params:hide("resonator")
   params:add_option("generative","generative",{"off","on"},2)
   params:add_option("midi_in","midi in",midi_device_list,1)
   params:add_number("midi_in_sector","midi in sector",1,4,4)

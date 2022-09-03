@@ -7,8 +7,8 @@ Engine_EmissionSpectrum : CroneEngine {
     var synMixer;
     var busMixer;
     var synNoise;
-    var synInput;
-    var synBuffer;
+    // var synInput;
+    // var synBuffer;
     var busNoise;
     var busInput;
     var busBuffer;
@@ -46,14 +46,14 @@ Engine_EmissionSpectrum : CroneEngine {
             arg out,in,insc,amp=1,sidechain_mult=2,compress_thresh=0.1,compress_level=0.1,compress_attack=0.01,compress_release=0.15;
             var snd=In.ar(in,2);
             var sndSC=In.ar(insc,2);
-            // snd = Compander.ar(snd, sndSC*sidechain_mult, 
-            //     compress_thresh, 1, compress_level, 
-            //     compress_attack, compress_release);
+            snd = Compander.ar(snd, sndSC*sidechain_mult, 
+                compress_thresh, 1, compress_level, 
+                compress_attack, compress_release);
             snd = HPF.ar(snd, 20);
             //snd = LPF.ar(snd,2000);
             6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand], 1/8, snd) };
 
-            Out.ar(out,snd/5*amp);
+            Out.ar(out,snd*amp);
         }).add;
         
         SynthDef("buffer",{
@@ -75,10 +75,10 @@ Engine_EmissionSpectrum : CroneEngine {
             decay1 = 0.3, decay1L = 0.8, decay2 = 0.15, clicky=0.0, out|
             var    fcurve = EnvGen.kr(Env([basefreq * ratio, basefreq], [sweeptime], \exp)),
             env = EnvGen.kr(Env([clicky,1, decay1L, 0], [0.0,decay1, decay2], -4), doneAction: Done.freeSelf),
-            sig = SinOsc.ar(fcurve, 0.5pi, preamp).distort * env * amp;
+            sig = SinOsc.ar(fcurve, 0.5pi, preamp).distort * env ;
             sig = sig !2;
-            Out.ar(0,sig);
-            Out.ar(out, sig);
+            Out.ar(0,sig*amp);
+            Out.ar(out,sig*4);
         }).add;
 
         SynthDef("play",{
@@ -111,7 +111,7 @@ Engine_EmissionSpectrum : CroneEngine {
             var snd;
             var start=Impulse.kr(0);
             var freq=note.midicps;
-            var env_main = EnvGen.ar(Env.perc(attack,decay),doneAction:2);
+            var env_main = EnvGen.ar(Env.perc(attack,decay),doneAction:2)*EnvGen.ar(Env.new([1,1,0],[40,2]),start,doneAction:2);
             var duration=attack+decay;
 
             var env = EnvGen.kr(Env.linen(
@@ -134,7 +134,6 @@ Engine_EmissionSpectrum : CroneEngine {
                 env_main*env
             ]);
 
-            FreeSelf.kr(TDelay.kr(Impulse.kr(0),45));
             DetectSilence.ar(snd,0.01,2,doneAction:2);
             Out.ar(out,snd);
         }).add;
@@ -144,7 +143,7 @@ Engine_EmissionSpectrum : CroneEngine {
             var snd;
             var start=Impulse.kr(0);
             var freq=note.midicps;
-            var env = EnvGen.ar(Env.adsr(attack,1.0,1.0,decay),gate,doneAction:2);
+            var env = EnvGen.ar(Env.adsr(attack,1.0,1.0,decay),gate,doneAction:2)*EnvGen.ar(Env.new([1,1,0],[20,2]),start,doneAction:2);
             var duration=attack+decay;
 
             freq = Vibrato.kr(freq,LFNoise1.kr(1).range(1,4),0.005,1.0,1.0,0.95,0.1);
@@ -156,12 +155,11 @@ Engine_EmissionSpectrum : CroneEngine {
             snd=snd/20*amp;
             snd=snd.tanh*env;
 
-            SendReply.kr(Impulse.kr(ArrayMin.kr([30/duration,10]))+start,"/oscAmplitude",[
+            SendReply.kr(Impulse.kr(ArrayMin.kr([15/attack,15/decay,10])*(env<0.99))+start,"/oscAmplitude",[
                 note_ind,
                 env
             ]);
 
-            FreeSelf.kr(TDelay.kr(Impulse.kr(0),20));
             DetectSilence.ar(snd,0.01,2,doneAction:2);
             Out.ar(out,snd);
         }).add;
@@ -170,17 +168,17 @@ Engine_EmissionSpectrum : CroneEngine {
 
         busMixer=Bus.audio(context.server,2);
         busNoise=Bus.audio(context.server,2);
-        busBuffer=Bus.audio(context.server,2);
-        busInput=Bus.audio(context.server,2);
+        // busBuffer=Bus.audio(context.server,2);
+        // busInput=Bus.audio(context.server,2);
         busSidechain=Bus.audio(context.server,2);
 
         context.server.sync;
 
         synNoise=Synth.head(context.server,"noise",[\out,busNoise]);
-        synInput=Synth.head(context.server,"input",[\out,busInput]);
-        synBuffer=Synth.head(context.server,"buffer",[\out,busBuffer]);
+        // synInput=Synth.head(context.server,"input",[\out,busInput]);
+        // synBuffer=Synth.head(context.server,"buffer",[\out,busBuffer]);
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
-        bufSample = Buffer.read(context.server,"/home/we/dust/audio/tehn/1.wav");
+        // bufSample = Buffer.read(context.server,"/home/we/dust/audio/tehn/1.wav");
 
         this.addCommand("emit_off","i",{arg msg;
           var id=msg[1];
@@ -231,13 +229,13 @@ Engine_EmissionSpectrum : CroneEngine {
                 doplay=false;
               });
             });
-            if (reson>1.9,{
-                if (reson>2.9,{
-                  busin=busBuffer;
-                },{
-                  busin=busInput;
-                });
-            });
+            // if (reson>1.9,{
+            //     if (reson>2.9,{
+            //       busin=busBuffer;
+            //     },{
+            //       busin=busInput;
+            //     });
+            // });
             if (doplay,{
                 syns.put(id,Synth.before(synMixer,"klank",[
                     // \buf,bufSample,
@@ -257,6 +255,9 @@ Engine_EmissionSpectrum : CroneEngine {
             });
         });
 
+        this.addCommand("mixer_set","sf",{arg msg;
+            synMixer.set(msg[1],msg[2]);
+        });
         this.addCommand("amp","f",{arg msg;
             synMixer.set(\amp,msg[1]);
         });
@@ -296,14 +297,14 @@ Engine_EmissionSpectrum : CroneEngine {
         });
         synMixer.free;
         synNoise.free;
-        synInput.free;
-        synBuffer.free;
         busNoise.free;
-        busInput.free;
-        busBuffer.free;
         busMixer.free;
         busSidechain.free;
         oscAmplitude.free;
+        // synInput.free;
+        // synBuffer.free;
+        // busInput.free;
+        // busBuffer.free;
         // ^ EmissionSpectrum specific
     }
 }
