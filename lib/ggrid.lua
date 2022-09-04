@@ -57,7 +57,15 @@ end
 
 function GGrid:note_ind(row,col)
   local sector=math.ceil(row/2)
-  return math.floor(wrap(col,params:get(sector.."start"),params:get(sector.."end")))
+  if params:get(sector.."start")==params:get(sector.."end") then 
+    return params:get(sector.."start")
+  end
+  local ss=params:get(sector.."start")
+  local ee=params:get(sector.."end")
+  if ss>ee then 
+    ss,ee=ee,ss
+  end
+  return math.floor(wrap(col,ss,ee))
 end
 
 function GGrid:grid_key(x,y,z)

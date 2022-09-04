@@ -1,4 +1,4 @@
--- | ||  | v1.1.0
+-- | ||  | v1.1.1
 --
 --
 -- llllllll.co/t/|_||__|_
@@ -30,7 +30,16 @@ end
 
 function note_on(sector,node_indy,force,gate,note_force)
   if node_indy==nil then
-    node_indy=math.random(params:get(sector.."start"),params:get(sector.."end"))
+    if params:get(sector.."start")==params:get(sector.."end") then 
+      note_indy=params:get(sector.."start")
+    else
+      local ss=params:get(sector.."start")
+      local ee=params:get(sector.."end")
+      if ss>ee then 
+        ss,ee=ee,ss
+      end
+      node_indy=math.random(ss,ee)
+    end
   end
   local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
   local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
@@ -510,6 +519,9 @@ function redraw()
       screen.level(math.floor(util.round(show_sector[i]/4)))
       local ss=note_pos(params:get(i.."start"))
       local ee=note_pos(params:get(i.."end"))
+      if ss>ee then 
+        ss,ee=ee,ss
+      end
       screen.rect(ss,0,ee-ss+1,65)
       screen.fill()
       screen.blend_mode(0)
