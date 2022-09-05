@@ -64,7 +64,9 @@ Engine_EmissionSpectrum : CroneEngine {
         
         SynthDef("buffer",{
             arg out,amp=1.0,buf=0;
-            Out.ar(out,(PlayBuf.ar(2,buf,loop:1)*amp/10).tanh);
+            var snd=(PlayBuf.ar(2,buf,loop:1)*amp/10).tanh;
+            snd=FreeVerb2.ar(snd[0], snd[1], mix: 0.5, room: 0.5);
+            Out.ar(out,snd);
         }).add;
 
         SynthDef("input",{
@@ -334,6 +336,15 @@ Engine_EmissionSpectrum : CroneEngine {
 
         this.addCommand("reset_clock","",{ arg msg;
             synMixer.set(\t_trig,1);
+        });
+        
+        this.addCommand("load_sample", "s", {arg msg;
+            if (bufSample.notNil,{
+                bufSample.free;
+            });
+            bufSample = Buffer.read(context.server,msg[1],action:{
+                ["loaded",msg[1]].postln;
+            });
         });
         
         this.addCommand("source", "fff", {arg msg;

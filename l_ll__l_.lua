@@ -30,12 +30,12 @@ end
 
 function note_on(sector,node_indy,force,gate,note_force)
   if node_indy==nil then
-    if params:get(sector.."start")==params:get(sector.."end") then 
+    if params:get(sector.."start")==params:get(sector.."end") then
       note_indy=params:get(sector.."start")
     else
       local ss=params:get(sector.."start")
       local ee=params:get(sector.."end")
-      if ss>ee then 
+      if ss>ee then
         ss,ee=ee,ss
       end
       node_indy=math.random(ss,ee)
@@ -327,7 +327,7 @@ function initialize_params()
       {id="decay std",name="decay spread",min=0.01,max=30,exp=true,div=0.1,default=decays[i],formatter=function(param) return param:get().." s" end},
       {id="ring mean",name="ring",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
       {id="ring std",name="ring spread",min=0.01,max=1,exp=false,div=0.01,default=0.15,formatter=function(param) return param:get() end},
-      {id="emit", name="absorb/emit", min=0, max=1, exp=false, div=0.01, default=0.5,formatter=function(param) return param:get() end},
+      {id="emit",name="absorb/emit",min=0,max=1,exp=false,div=0.01,default=0.5,formatter=function(param) return param:get() end},
     }
     params:add_group("SECTOR "..i,#params_menu+2)
     for _,pram in ipairs(params_menu) do
@@ -350,14 +350,20 @@ function initialize_params()
     params:add_option(i.."midi_out","midi out",midi_device_list,1)
     params:add_number(i.."midi_ch","midi ch",1,16,1)
   end
-  
-  params:add_group("SOURCE", 3)
-  params:add_control("noise", "noise", controlspec.new(-math.huge, 6, 'db', nil, 0, "dB"))
-  params:add_control("input", "input", controlspec.new(-math.huge, 6, 'db', nil, -math.huge, "dB"))
-  params:add_control("loop", "loop", controlspec.new(-math.huge, 6, 'db', nil, -math.huge, "dB"))
-  params:set_action("noise", update_source)
-  params:set_action("input", update_source)
-  params:set_action("loop", update_source)
+
+  params:add_group("SOURCE",4)
+  params:add_control("noise","noise",controlspec.new(-math.huge,6,'db',nil,0,"dB"))
+  params:add_control("input","input",controlspec.new(-math.huge,6,'db',nil,-math.huge,"dB"))
+  params:add_control("loop","loop",controlspec.new(-math.huge,6,'db',nil,-math.huge,"dB"))
+  params:set_action("noise",update_source)
+  params:set_action("input",update_source)
+  params:set_action("loop",update_source)
+  params:add_file("loop_file","loop file",_path.audio.."hermit_leaves.wav")
+  params:set_action("loop_file",function(x)
+    if util.file_exists(x) and string.sub(x,-1)~="/" then
+      engine.load_sample(x)
+    end
+  end)
 
   -- setup other parameters
   local params_menu={
@@ -400,7 +406,7 @@ function initialize_params()
 end
 
 function update_source()
-  engine.source(util.dbamp(params:get("noise")), util.dbamp(params:get("input")), util.dbamp(params:get("loop")))
+  engine.source(util.dbamp(params:get("noise")),util.dbamp(params:get("input")),util.dbamp(params:get("loop")))
 end
 
 function update_euclidean()
@@ -532,7 +538,7 @@ function redraw()
       screen.level(math.floor(util.round(show_sector[i]/4)))
       local ss=note_pos(params:get(i.."start"))
       local ee=note_pos(params:get(i.."end"))
-      if ss>ee then 
+      if ss>ee then
         ss,ee=ee,ss
       end
       screen.rect(ss,0,ee-ss+1,65)
