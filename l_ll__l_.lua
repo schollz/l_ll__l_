@@ -1,4 +1,4 @@
--- | ||  | v1.1.1
+-- | ||  | v1.2.0
 --
 --
 -- llllllll.co/t/|_||__|_
@@ -19,7 +19,7 @@ sequins=require("sequins")
 er=require("er")
 
 max_note_num=12*4
-voice_limit=11
+voice_limit=6
 voice_count=0
 midi_notes={}
 debounce_fn={}
@@ -30,12 +30,12 @@ end
 
 function note_on(sector,node_indy,force,gate,note_force)
   if node_indy==nil then
-    if params:get(sector.."start")==params:get(sector.."end") then 
+    if params:get(sector.."start")==params:get(sector.."end") then
       note_indy=params:get(sector.."start")
     else
       local ss=params:get(sector.."start")
       local ee=params:get(sector.."end")
-      if ss>ee then 
+      if ss>ee then
         ss,ee=ee,ss
       end
       node_indy=math.random(ss,ee)
@@ -44,11 +44,12 @@ function note_on(sector,node_indy,force,gate,note_force)
   local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
   local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
   local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
+  local emit=params:get(sector.."emit")
   local note=note_force or notes[node_indy]
   local duration=attack+decay
   if voice_count<voice_limit or force==true then
     voice_count=voice_count+1
-    engine[gate and "emit_on" or "emit"](node_indy,note,attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
+    engine[gate and "emit_on" or "emit"](node_indy,note,attack,decay,ring,params:get(sector.."amp"),params:get("resonator"),emit)
     for j=1,2 do
       local k=j*2-1
       if params:get("crow_"..j.."_sector")==sector then
@@ -74,7 +75,7 @@ function init()
 
   hs.init()
   initialize_params()
-  local voices={2,3,3,1}
+  local voices={2,4,5,2}
   local clocks={}
   for sector=1,4 do
     for i=1,voices[sector] do
@@ -116,9 +117,20 @@ function init()
     end
   end)
 
+  local cpu_check=30
   clock.run(function()
     while true do
       clock.sleep(1/10)
+      cpu_check=cpu_check-1
+      if cpu_check==0 then
+        print("cpu usage",_norns.audio_get_cpu_load(),"voice limit",voice_limit)
+        if _norns.audio_get_cpu_load()>57 then
+          voice_limit=voice_limit-1
+        elseif voice_limit<12 then
+          voice_limit=voice_limit+1
+        end
+        cpu_check=30
+      end
       debounce_params()
       for i,mn in ipairs(midi_notes) do
         if not mn.dead then
@@ -312,6 +324,20 @@ function initialize_params()
     end)
   end
 
+  params:add_group("SOURCE",4)
+  params:add_control("noise","noise",controlspec.new(-math.huge,6,'db',nil,0,"dB"))
+  params:add_control("input","input",controlspec.new(-math.huge,6,'db',nil,-math.huge,"dB"))
+  params:add_control("loop","loop",controlspec.new(-math.huge,6,'db',nil,-math.huge,"dB"))
+  params:set_action("noise",update_source)
+  params:set_action("input",update_source)
+  params:set_action("loop",update_source)
+  params:add_file("loop_file","loop file",_path.audio.."hermit_leaves.wav")
+  params:set_action("loop_file",function(x)
+    if util.file_exists(x) and string.sub(x,-1)~="/" then
+      engine.load_sample(x)
+    end
+  end)
+
   local attacks={math.randomn(10,2),math.randomn(7,2),math.randomn(5,1),math.randomn(1.7,0.5)}
   local decays={math.randomn(10,2),math.randomn(7,2),math.randomn(5,1),math.randomn(1.7,0.5)}
   local amps={0.7,0.8,1.0,0.5}
@@ -326,6 +352,7 @@ function initialize_params()
       {id="decay std",name="decay spread",min=0.01,max=30,exp=true,div=0.1,default=decays[i],formatter=function(param) return param:get().." s" end},
       {id="ring mean",name="ring",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
       {id="ring std",name="ring spread",min=0.01,max=1,exp=false,div=0.01,default=0.15,formatter=function(param) return param:get() end},
+      {id="emit",name="absorb/emit",min=0,max=1,exp=false,div=0.01,default=0.5,formatter=function(param) return param:get() end},
     }
     params:add_group("SECTOR "..i,#params_menu+2)
     for _,pram in ipairs(params_menu) do
@@ -380,7 +407,6 @@ function initialize_params()
   params:add{type="number",id="root_note",name="root note",
     min=0,max=127,default=12,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
   action=function() build_scale() end}
-
   params:add_option("resonator","resonator",{"noise","input","buffer"},2)
   params:hide("resonator")
   params:add_option("generative","generative",{"off","on"},2)
@@ -390,9 +416,12 @@ function initialize_params()
   params:bang()
 end
 
+function update_source()
+  engine.source(util.dbamp(params:get("noise")),util.dbamp(params:get("input")),util.dbamp(params:get("loop")))
+end
+
 function update_euclidean()
   local euc=er.gen(params:get("euc_k"),params:get("euc_n"),params:get("euc_w"))
-  tab.print(euc)
   kick_seq:settable(euc)
 end
 
@@ -519,7 +548,7 @@ function redraw()
       screen.level(math.floor(util.round(show_sector[i]/4)))
       local ss=note_pos(params:get(i.."start"))
       local ee=note_pos(params:get(i.."end"))
-      if ss>ee then 
+      if ss>ee then
         ss,ee=ee,ss
       end
       screen.rect(ss,0,ee-ss+1,65)
