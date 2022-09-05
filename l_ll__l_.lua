@@ -44,11 +44,12 @@ function note_on(sector,node_indy,force,gate,note_force)
   local attack=util.clamp(math.randomn(params:get(sector.."attack mean"),params:get(sector.."attack std"))*params:get("timescale"),0.001,100)
   local decay=util.clamp(math.randomn(params:get(sector.."decay mean"),params:get(sector.."decay std"))*params:get("timescale"),0.001,100)
   local ring=util.clamp(math.randomn(params:get(sector.."ring mean"),params:get(sector.."ring std")),0.001,1)
+  local emit=params:get(sector.."emit")
   local note=note_force or notes[node_indy]
   local duration=attack+decay
   if voice_count<voice_limit or force==true then
     voice_count=voice_count+1
-    engine[gate and "emit_on" or "emit"](node_indy,note,attack,decay,ring,params:get(sector.."amp"),params:get("resonator"))
+    engine[gate and "emit_on" or "emit"](node_indy,note,attack,decay,ring,params:get(sector.."amp"),params:get("resonator"),emit)
     for j=1,2 do
       local k=j*2-1
       if params:get("crow_"..j.."_sector")==sector then
@@ -326,6 +327,7 @@ function initialize_params()
       {id="decay std",name="decay spread",min=0.01,max=30,exp=true,div=0.1,default=decays[i],formatter=function(param) return param:get().." s" end},
       {id="ring mean",name="ring",min=0.01,max=1,exp=false,div=0.1,default=0.5,formatter=function(param) return param:get() end},
       {id="ring std",name="ring spread",min=0.01,max=1,exp=false,div=0.01,default=0.15,formatter=function(param) return param:get() end},
+      {id="emit", name="absorb/emit", min=0, max=1, exp=false, div=0.01, default=0.5,formatter=function(param) return param:get() end},
     }
     params:add_group("SECTOR "..i,#params_menu+2)
     for _,pram in ipairs(params_menu) do
@@ -348,6 +350,14 @@ function initialize_params()
     params:add_option(i.."midi_out","midi out",midi_device_list,1)
     params:add_number(i.."midi_ch","midi ch",1,16,1)
   end
+  
+  params:add_group("SOURCE", 3)
+  params:add_control("noise", "noise", controlspec.new(-math.huge, 6, 'db', nil, 0, "dB"))
+  params:add_control("input", "input", controlspec.new(-math.huge, 6, 'db', nil, -math.huge, "dB"))
+  params:add_control("loop", "loop", controlspec.new(-math.huge, 6, 'db', nil, -math.huge, "dB"))
+  params:set_action("noise", update_source)
+  params:set_action("input", update_source)
+  params:set_action("loop", update_source)
 
   -- setup other parameters
   local params_menu={
@@ -380,7 +390,6 @@ function initialize_params()
   params:add{type="number",id="root_note",name="root note",
     min=0,max=127,default=12,formatter=function(param) return MusicUtil.note_num_to_name(param:get(),true) end,
   action=function() build_scale() end}
-
   params:add_option("resonator","resonator",{"noise","input","buffer"},2)
   params:hide("resonator")
   params:add_option("generative","generative",{"off","on"},2)
@@ -388,6 +397,10 @@ function initialize_params()
   params:add_number("midi_in_sector","midi in sector",1,4,4)
 
   params:bang()
+end
+
+function update_source()
+  engine.source(util.dbamp(params:get("noise")), util.dbamp(params:get("input")), util.dbamp(params:get("loop")))
 end
 
 function update_euclidean()
