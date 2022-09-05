@@ -383,8 +383,9 @@ Engine_EmissionSpectrum : CroneEngine {
             synBuffer = nil;
           });            
         });
-
         // ^ EmissionSpectrum specific
+
+
 
     }
 

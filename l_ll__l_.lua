@@ -19,7 +19,7 @@ sequins=require("sequins")
 er=require("er")
 
 max_note_num=12*4
-voice_limit=11
+voice_limit=6
 voice_count=0
 midi_notes={}
 debounce_fn={}
@@ -75,7 +75,7 @@ function init()
 
   hs.init()
   initialize_params()
-  local voices={2,3,3,1}
+  local voices={2,4,5,2}
   local clocks={}
   for sector=1,4 do
     for i=1,voices[sector] do
@@ -117,9 +117,20 @@ function init()
     end
   end)
 
+  local cpu_check=30
   clock.run(function()
     while true do
       clock.sleep(1/10)
+      cpu_check=cpu_check-1
+      if cpu_check==0 then
+        print("cpu usage",_norns.audio_get_cpu_load(),"voice limit",voice_limit)
+        if _norns.audio_get_cpu_load()>57 then
+          voice_limit=voice_limit-1
+        elseif voice_limit<12 then
+          voice_limit=voice_limit+1
+        end
+        cpu_check=30
+      end
       debounce_params()
       for i,mn in ipairs(midi_notes) do
         if not mn.dead then
@@ -313,6 +324,20 @@ function initialize_params()
     end)
   end
 
+  params:add_group("SOURCE",4)
+  params:add_control("noise","noise",controlspec.new(-math.huge,6,'db',nil,0,"dB"))
+  params:add_control("input","input",controlspec.new(-math.huge,6,'db',nil,-math.huge,"dB"))
+  params:add_control("loop","loop",controlspec.new(-math.huge,6,'db',nil,-math.huge,"dB"))
+  params:set_action("noise",update_source)
+  params:set_action("input",update_source)
+  params:set_action("loop",update_source)
+  params:add_file("loop_file","loop file",_path.audio.."hermit_leaves.wav")
+  params:set_action("loop_file",function(x)
+    if util.file_exists(x) and string.sub(x,-1)~="/" then
+      engine.load_sample(x)
+    end
+  end)
+
   local attacks={math.randomn(10,2),math.randomn(7,2),math.randomn(5,1),math.randomn(1.7,0.5)}
   local decays={math.randomn(10,2),math.randomn(7,2),math.randomn(5,1),math.randomn(1.7,0.5)}
   local amps={0.7,0.8,1.0,0.5}
@@ -350,20 +375,6 @@ function initialize_params()
     params:add_option(i.."midi_out","midi out",midi_device_list,1)
     params:add_number(i.."midi_ch","midi ch",1,16,1)
   end
-
-  params:add_group("SOURCE",4)
-  params:add_control("noise","noise",controlspec.new(-math.huge,6,'db',nil,0,"dB"))
-  params:add_control("input","input",controlspec.new(-math.huge,6,'db',nil,-math.huge,"dB"))
-  params:add_control("loop","loop",controlspec.new(-math.huge,6,'db',nil,-math.huge,"dB"))
-  params:set_action("noise",update_source)
-  params:set_action("input",update_source)
-  params:set_action("loop",update_source)
-  params:add_file("loop_file","loop file",_path.audio.."hermit_leaves.wav")
-  params:set_action("loop_file",function(x)
-    if util.file_exists(x) and string.sub(x,-1)~="/" then
-      engine.load_sample(x)
-    end
-  end)
 
   -- setup other parameters
   local params_menu={
@@ -411,7 +422,6 @@ end
 
 function update_euclidean()
   local euc=er.gen(params:get("euc_k"),params:get("euc_n"),params:get("euc_w"))
-  tab.print(euc)
   kick_seq:settable(euc)
 end
 
