@@ -148,7 +148,8 @@ Engine_EmissionSpectrum : CroneEngine {
  
             freq = Vibrato.kr(freq,LFNoise1.kr(1).range(1,4),0.005,1.0,1.0,0.95,0.1);
 
-            snd = DynKlank.ar(`[[freq],[env],[ring*1000*freq.reciprocal]], In.ar(in,2))/(2*(ring.sqrt + 0.01));
+            // Cap the reverberation time at 1s to avoid booming low frequencies.
+            snd = DynKlank.ar(`[[freq],[env],[ring]], In.ar(in,2))/(2*(ring.sqrt + 0.01));
             snd = SelectX.ar(
               SelectX.kr(2*emit, [0, VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7), 1]),
               [snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)],
@@ -351,7 +352,7 @@ Engine_EmissionSpectrum : CroneEngine {
           var noise = msg[1];
           var input = msg[2];
           var loop = msg[3];
-          [noise, input, loop].postln;
+          //[noise, input, loop].postln;
           if (noise > 0, {
             if (synNoise == nil, {
               synNoise = Synth.head(context.server,"noise",[\out,busNoise, \amp, noise]);
