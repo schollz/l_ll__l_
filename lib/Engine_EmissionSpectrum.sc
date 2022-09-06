@@ -42,6 +42,18 @@ Engine_EmissionSpectrum : CroneEngine {
         }, '/oscAmplitude');
 
 
+        SynthDef("defAudioIn",{
+                arg ch=0,lpf=20000,lpfqr=0.707,hpf=20,hpfqr=0.909,pan=0,amp=1.0,
+                out=0,compression=0,ratio=4;
+                var snd;
+                snd=SoundIn.ar(ch);
+                snd=Pan2.ar(snd,pan,amp);
+                snd=RHPF.ar(snd,hpf,hpfqr);
+                snd=RLPF.ar(snd,lpf,lpfqr);
+                snd=Compander.ar(snd,snd,1,1-compression,1/ratio,0.01,0.1);
+                Out.ar(out,snd);
+        }).add;
+
         SynthDef("mixer",{
             arg out,in,insc,amp=1,
             bpm=120,gating_amt=1.0,gating_period=4,gating_strength=0.0,t_trig=1;
@@ -211,6 +223,15 @@ Engine_EmissionSpectrum : CroneEngine {
         // synBuffer=Synth.head(context.server,"buffer",[\out,busBuffer]);
         synMixer=Synth.tail(context.server,"mixer",[\out,0,\in,busMixer,\insc,busSidechain]);
         bufSample = Buffer.read(context.server,"/home/we/dust/audio/hermit_leaves.wav");
+
+        syns.put("audioInL",Synth.tail(context.server,"defAudioIn",
+            [\ch,0,\out,0,\pan,-1]
+        ));
+        syns.put("audioInR",Synth.tail(context.server,"defAudioIn",
+            [\ch,1,\out,0,\pan,1]
+        ));
+        NodeWatcher.register(syns.at("audioInR"));
+        NodeWatcher.register(syns.at("audioInL"));
 
         this.addCommand("emit_off","i",{arg msg;
           var id=msg[1];
@@ -383,6 +404,13 @@ Engine_EmissionSpectrum : CroneEngine {
             synBuffer.free;
             synBuffer = nil;
           });            
+        });
+
+        this.addCommand("audioin_set","ssf", { arg msg;
+            var lr=msg[1];
+            var key=msg[2];
+            var val=msg[3];
+            syns.at("audioIn"++lr).set(key,val);
         });
         // ^ EmissionSpectrum specific
 

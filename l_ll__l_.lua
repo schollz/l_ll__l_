@@ -22,13 +22,23 @@ max_note_num=12*4
 voice_limit=6
 voice_count=0
 midi_notes={}
+grid_note={}
 debounce_fn={}
 
-function note_off(note_indy)
+function note_off(note_indy,from_grid)
   engine.emit_off(note_indy)
+  if from_grid then
+    for j=1,2 do
+      local k=j*2-1
+      if grid_note[j]==note_indy then
+        grid_note[j]=nil
+        crow.output[k+1](false)
+      end
+    end
+  end
 end
 
-function note_on(sector,node_indy,force,gate,note_force)
+function note_on(sector,node_indy,force,gate,note_force,from_grid)
   if node_indy==nil then
     if params:get(sector.."start")==params:get(sector.."end") then
       note_indy=params:get(sector.."start")
@@ -53,9 +63,17 @@ function note_on(sector,node_indy,force,gate,note_force)
     for j=1,2 do
       local k=j*2-1
       if params:get("crow_"..j.."_sector")==sector then
-        crow.output[k].volts=(note-24)/12
-        crow.output[k+1].action=string.format("{to(10,%3.5f),to(0,%3.5f)}",attack,decay)
-        crow.output[k+1].execute()
+        if (from_grid==nil and grid_note[j]==nil) or from_grid then
+          crow.output[k].volts=(note-24)/12
+          if not from_grid then
+            crow.output[k+1].action=string.format("{to(10,%3.5f),to(0,%3.5f)}",attack,decay)
+            crow.output[k+1].execute()
+          elseif from_grid then
+            grid_note[j]=node_indy
+            crow.output[k+1].action=string.format("adsr( %3.5f, %3.5f, 5, %3.5f) ",attack,attack/4,decay)
+            crow.output[k+1](true)
+          end
+        end
       end
     end
     if params:get(sector.."midi_out")>1 then
@@ -126,7 +144,7 @@ function init()
         print("cpu usage",_norns.audio_get_cpu_load(),"voice limit",voice_limit)
         if _norns.audio_get_cpu_load()>57 then
           voice_limit=voice_limit-1
-        elseif _norns.audio_get_cpu_load()<48 and voice_count >= voice_limit - 1 then
+        elseif _norns.audio_get_cpu_load()<48 and voice_count>=voice_limit-1 then
           voice_limit=voice_limit+1
         end
         cpu_check=30
@@ -236,6 +254,43 @@ function initialize_params()
       end
     end
   end
+
+  -- setup audio in
+  local params_menu={
+    {id="amp",name="amp",min=0,max=2,exp=false,div=0.01,default=1.0},
+    {id="pan",name="pan",min=-1,max=1,exp=false,div=0.01,default=-1,response=1},
+    {id="hpf",name="hpf",min=10,max=2000,exp=true,div=5,default=10},
+    {id="hpfqr",name="hpf qr",min=0.05,max=0.99,exp=false,div=0.01,default=0.61},
+    {id="lpf",name="lpf",min=200,max=20000,exp=true,div=100,default=18000},
+    {id="lpfqr",name="lpf qr",min=0.05,max=0.99,exp=false,div=0.01,default=0.61},
+  }
+  params:add_group("AUDIO IN",#params_menu*2+1)
+  params:add_option("audioin_linked","audio in",{"mono+mono","stereo"},2)
+  local lrs={"L","R"}
+  for _,pram in ipairs(params_menu) do
+    for lri,lr in ipairs(lrs) do
+      params:add{
+        type="control",
+        id="audioin"..pram.id..lr,
+        name=pram.name.." "..lr,
+        controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
+        formatter=pram.formatter,
+      }
+      params:set_action("audioin"..pram.id..lr,function(v)
+        engine.audioin_set(lr,pram.id,v)
+        if params:get("audioin_linked")==2 then
+          if pram.id~="pan" then
+            params:set("audioin"..pram.id..lrs[3-lri],v,true)
+            engine.audioin_set(lrs[3-lri],pram.id,v)
+          else
+            params:set("audioin"..pram.id..lrs[3-lri],-v,true)
+            engine.audioin_set(lrs[3-lri],pram.id,-1*v)
+          end
+        end
+      end)
+    end
+  end
+  params:set("audioinpanR",1)
 
   -- setup crow
   params:add_group("CROW",4)

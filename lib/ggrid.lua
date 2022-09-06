@@ -59,12 +59,12 @@ end
 
 function GGrid:note_ind(row,col)
   local sector=math.ceil(row/2)
-  if params:get(sector.."start")==params:get(sector.."end") then 
+  if params:get(sector.."start")==params:get(sector.."end") then
     return params:get(sector.."start")
   end
   local ss=params:get(sector.."start")
   local ee=params:get(sector.."end")
-  if ss>ee then 
+  if ss>ee then
     ss,ee=ee,ss
   end
   return math.floor(wrap(col,ss,ee))
@@ -85,9 +85,9 @@ function GGrid:key_press(row,col,on)
   local sector=math.ceil(row/2)
   if on then
     self.notes_on[row][col]=self:note_ind(row,col)
-    note_on(sector,self.notes_on[row][col],true,true)
+    note_on(sector,self.notes_on[row][col],true,true,nil,true)
   elseif self.notes_on[row][col]>0 then
-    note_off(self.notes_on[row][col])
+    note_off(self.notes_on[row][col],true)
     self.notes_on[row][col]=0
   end
 end
