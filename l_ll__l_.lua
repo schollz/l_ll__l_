@@ -59,7 +59,7 @@ function note_on(sector,node_indy,force,gate,note_force)
       end
     end
     if params:get(sector.."midi_out")>1 then
-      table.insert(midi_notes,{device=params:get(sector.."midi_out")-1,ch=params:get(sector.."midi_ch"),note=notes[node_indy],attack=attack,duration=0,dead=false}) -- insert note that needs to be gated off later
+      table.insert(midi_notes,{device=params:get(sector.."midi_out")-1,ch=params:get(sector.."midi_ch"),note=note,attack=attack,duration=0,dead=false}) -- insert note that needs to be gated off later
       midi_device[params:get(sector.."midi_out")-1].note_on(note,math.floor(ring*127),params:get(sector.."midi_ch"))
     end
   end
@@ -126,7 +126,7 @@ function init()
         print("cpu usage",_norns.audio_get_cpu_load(),"voice limit",voice_limit)
         if _norns.audio_get_cpu_load()>57 then
           voice_limit=voice_limit-1
-        elseif _norns.audio_get_cpu_load()<48 and voice_count >= voice_limit - 1 then
+        elseif _norns.audio_get_cpu_load()<48 and voice_count>=voice_limit-1 then
           voice_limit=voice_limit+1
         end
         cpu_check=30
