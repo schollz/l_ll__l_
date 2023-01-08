@@ -45,7 +45,7 @@ Engine_EmissionSpectrum : CroneEngine {
         SynthDef("mixer",{
             arg out,in,insc,amp=1,
             bpm=120,gating_amt=1.0,gating_period=4,gating_strength=0.0,t_trig=1;
-            var snd=In.ar(in,6);
+            var snd=In.ar(in,4);
             var sndSC=In.ar(insc,2);
             var mainPhase=Phasor.ar(t_trig,1/context.server.sampleRate,0,1000000);
             var thirtySecondNotes=(bpm/60*mainPhase*16).floor;
@@ -55,7 +55,7 @@ Engine_EmissionSpectrum : CroneEngine {
                 ),inf));
             snd = HPF.ar(snd, 20);
 
-            6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand,0.8.rand,0.8.rand,0.8.rand,0.8.rand], 1/8, snd) };
+            6.do{snd = DelayL.ar(snd, 0.8, [0.8.rand,0.8.rand,0.8.rand,0.8.rand], 1/8, snd) };
 
             snd=snd*SelectX.ar(Clip.kr(gating_amt+SinOsc.kr(1/gating_period,phase:Rand(0,3),mul:gating_strength),0,1),[DC.ar(1),(1-EnvGen.ar(Env.new([0,1,1,0],[0.01,Latch.kr(gating,gating>0)/64,0.01],\sine),Trig.kr(gating>0,0.01)))]);
 
@@ -155,8 +155,7 @@ Engine_EmissionSpectrum : CroneEngine {
               [snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)],
             );
             
-            snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.75,0.75));
-            snd=(snd/20)*amp;
+            snd=(snd/2)*amp;
             snd=snd.tanh*env_main;
 
             SendReply.kr(Impulse.kr(ArrayMin.kr([15/attack,15/decay,10])*(env<0.99))+start,"/oscAmplitude",[
@@ -165,6 +164,8 @@ Engine_EmissionSpectrum : CroneEngine {
             ]);
 
             DetectSilence.ar(snd,0.001,2,doneAction:2);
+
+            snd=PanAz.ar(4,Mix.new(snd),VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-1,1));
             Out.ar(out,snd);
         }).add;
         
@@ -183,8 +184,7 @@ Engine_EmissionSpectrum : CroneEngine {
               SelectX.kr(2*emit, [0, VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7), 1]),
               [snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)],
             );            
-            snd=Pan2.ar(6,snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-1,1));
-            snd=(snd/20)*amp;
+            snd=(snd/2)*amp;
             snd=snd.tanh*env;
 
             SendReply.kr(Impulse.kr(ArrayMin.kr([15/attack,15/decay,10])*(env<0.99))+start,"/oscAmplitude",[
@@ -193,12 +193,13 @@ Engine_EmissionSpectrum : CroneEngine {
             ]);
 
             DetectSilence.ar(snd,0.001,2,doneAction:2);
+            snd=PanAz.ar(4,Mix.new(snd),VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-1,1));
             Out.ar(out,snd);
         }).add;
 
         context.server.sync;
 
-        busMixer=Bus.audio(context.server,6);
+        busMixer=Bus.audio(context.server,4);
         busNoise=Bus.audio(context.server,2);
         busSidechain=Bus.audio(context.server,2);
 

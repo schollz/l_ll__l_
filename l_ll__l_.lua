@@ -126,7 +126,7 @@ function init()
         print("cpu usage",_norns.audio_get_cpu_load(),"voice limit",voice_limit)
         if _norns.audio_get_cpu_load()>57 then
           voice_limit=voice_limit-1
-        elseif _norns.audio_get_cpu_load()<48 and voice_count>=voice_limit-1 then
+        elseif _norns.audio_get_cpu_load()<48 and voice_count>=voice_limit-1 and voice_limit<2 then
           voice_limit=voice_limit+1
         end
         cpu_check=30
