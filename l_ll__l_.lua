@@ -126,7 +126,7 @@ function init()
         print("cpu usage",_norns.audio_get_cpu_load(),"voice limit",voice_limit)
         if _norns.audio_get_cpu_load()>57 then
           voice_limit=voice_limit-1
-        elseif _norns.audio_get_cpu_load()<48 and voice_count>=voice_limit-1 then
+        elseif _norns.audio_get_cpu_load()<48 and voice_count>=voice_limit-1 and voice_limit<12 then
           voice_limit=voice_limit+1
         end
         cpu_check=30
@@ -149,6 +149,85 @@ function init()
   for i=1,127 do
     table.insert(note_env,0)
   end
+  
+  clock.run(function()
+    params:set("clock_tempo",90)
+    for i=1,90 do
+      clock.sleep(0.01)
+      params:set("gating_strength",util.dbamp(-12-90+i))
+      params:set("gating_amt",util.dbamp(0-90+i))
+      params:set("kick_amp",util.dbamp(-12-90+i))
+      params:set("loop",-6-90+i)
+    end
+    
+    -- -- play notes
+    -- cae
+    -- bge
+    -- afc afd
+    -- gdb
+    while true do
+      local notes={60,69,76}
+      if math.random()<0.5 then 
+        table.insert(notes,notes[1]+84)
+      end
+      for _, note in ipairs(notes) do 
+        print(note)
+        note_on(4,closest_note_ind(note),true,note)
+      end
+      clock.sleep(clock.get_beat_sec()*7)
+      for _, note in ipairs(notes) do 
+        note_off(closest_note_ind(note))
+      end
+      clock.sleep(clock.get_beat_sec()*1)
+      notes={59,67,math.random()<0.5 and 76 or 74}
+      for _, note in ipairs(notes) do 
+        print(note)
+        note_on(4,closest_note_ind(note),true,note)
+      end
+      clock.sleep(clock.get_beat_sec()*7)
+      for _, note in ipairs(notes) do 
+        note_off(closest_note_ind(note))
+      end
+      clock.sleep(clock.get_beat_sec()*1)
+
+      ---
+      notes={57,65,80}
+      for _, note in ipairs(notes) do 
+        print(note)
+        note_on(4,closest_note_ind(note),true,note)
+      end
+      clock.sleep(clock.get_beat_sec()*3)
+      for _, note in ipairs(notes) do 
+        note_off(closest_note_ind(note))
+      end
+      ---
+      notes={57+(math.random()<0.5 and 0 or -12),65,82}
+      for _, note in ipairs(notes) do 
+        print(note)
+        note_on(4,closest_note_ind(note),true,note)
+      end
+      clock.sleep(clock.get_beat_sec()*5)
+      for _, note in ipairs(notes) do 
+        note_off(closest_note_ind(note))
+      end
+
+
+      notes={59+(math.random()<0.5 and 0 or -12),67,74}
+      if math.random()<0.5 then 
+        table.insert(notes,notes[1]+59+24)
+      end
+      for _, note in ipairs(notes) do 
+        print(note)
+        note_on(4,closest_note_ind(note),true,note)
+      end
+      clock.sleep(clock.get_beat_sec()*7)
+      for _, note in ipairs(notes) do 
+        note_off(closest_note_ind(note))
+      end
+      clock.sleep(clock.get_beat_sec()*1)
+    end
+  
+  end)
 end
 
 function build_scale()
@@ -195,7 +274,7 @@ function initialize_params()
   -- setup midi
   midi_device={}
   midi_device_list={"none"}
-  local closest_note_ind=function(note)
+  closest_note_ind=function(note)
     local closest_ind={1,100000}
     for i,note2 in ipairs(notes) do
       if math.abs(note2-note)<closest_ind[2] then
