@@ -153,7 +153,7 @@ function init()
   clock.run(function()
     params:set("clock_tempo",90)
     for i=1,90 do
-      clock.sleep(0.01)
+      clock.sleep(1)
       params:set("gating_strength",util.dbamp(-12-90+i))
       params:set("gating_amt",util.dbamp(0-90+i))
       params:set("kick_amp",util.dbamp(-12-90+i))
