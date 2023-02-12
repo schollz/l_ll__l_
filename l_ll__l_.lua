@@ -124,9 +124,9 @@ function init()
       cpu_check=cpu_check-1
       if cpu_check==0 then
         print("cpu usage",_norns.audio_get_cpu_load(),"voice limit",voice_limit)
-        if _norns.audio_get_cpu_load()>35 then
+        if _norns.audio_get_cpu_load()>45 then
           voice_limit=voice_limit-1
-        elseif _norns.audio_get_cpu_load()<30 and voice_count>=voice_limit-1 and voice_limit<8 then
+        elseif _norns.audio_get_cpu_load()<40 and voice_count>=voice_limit-1 and voice_limit<12 then
           voice_limit=voice_limit+1
         end
         cpu_check=30
@@ -156,9 +156,11 @@ function init()
       clock.sleep(1)
       params:set("gating_strength",util.dbamp(-12-90+i))
       params:set("gating_amt",util.dbamp(0-90+i))
-      params:set("kick_amp",util.dbamp(-12-90+i))
+      params:set("kick_amp",util.dbamp(0-90+i))
       params:set("loop",-6-90+i)
     end
+
+    params:set("crow_1_sector",4)
     
     -- -- play notes
     -- cae

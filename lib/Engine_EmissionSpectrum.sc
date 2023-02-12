@@ -59,7 +59,7 @@ Engine_EmissionSpectrum : CroneEngine {
 
             snd=snd*SelectX.ar(Clip.kr(gating_amt+SinOsc.kr(1/gating_period,phase:Rand(0,3),mul:gating_strength),0,1),[DC.ar(1),(1-EnvGen.ar(Env.new([0,1,1,0],[0.01,Latch.kr(gating,gating>0)/64,0.01],\sine),Trig.kr(gating>0,0.01)))]);
 
-            Out.ar(out,snd*amp/2);
+            Out.ar(out,snd.tanh*amp);
         }).add;
         
         SynthDef("buffer",{
@@ -154,10 +154,12 @@ Engine_EmissionSpectrum : CroneEngine {
               SelectX.kr(2*emit, [0, VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7), 1]),
               [snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)],
             );
-            
+
             snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.75,0.75));
-            snd=(snd/20)*amp;
+            snd=(snd/10)*amp;
             snd=snd.tanh*env_main;
+
+
 
             SendReply.kr(Impulse.kr(ArrayMin.kr([15/attack,15/decay,10])*(env<0.99))+start,"/oscAmplitude",[
                 note_ind,
@@ -182,9 +184,9 @@ Engine_EmissionSpectrum : CroneEngine {
             snd = SelectX.ar(
               SelectX.kr(2*emit, [0, VarLag.kr(LFNoise0.kr(1/4),4,warp:\sine).range(0.2,0.7), 1]),
               [snd,LPF.ar(SinOsc.ar(freq*2)*env,1000,4)],
-            );            
+            );   
             snd=Pan2.ar(snd,VarLag.kr(LFNoise0.kr(1/5),5,warp:\sine).range(-0.75,0.75));
-            snd=(snd/20)*amp;
+            snd=(snd/10)*amp;
             snd=snd.tanh*env;
 
             SendReply.kr(Impulse.kr(ArrayMin.kr([15/attack,15/decay,10])*(env<0.99))+start,"/oscAmplitude",[
