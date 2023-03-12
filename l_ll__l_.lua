@@ -341,7 +341,7 @@ function initialize_params()
   local params_menu={
     {id="gating_amt",name="gating",min=0,max=1,exp=false,div=0.01,default=0.0},
     {id="gating_strength",name="gating lfo",min=0,max=1,exp=false,div=0.01,default=0.0},
-    {id="gating_period",name="gating lfo period",min=0,max=30,exp=false,div=0.01,default=math.random(1,6),unit="s"},
+    {id="gating_period",name="gating lfo period",min=0,max=30,exp=false,div=0.01,default=math.random(1,6),unit="s"}, 
   }
   params:add_group("GATING",#params_menu+1)
   for _,pram in ipairs(params_menu) do
@@ -455,6 +455,26 @@ function initialize_params()
     end
     params:add_option(i.."midi_out","midi out",midi_device_list,1)
     params:add_number(i.."midi_ch","midi ch",1,16,1)
+  end
+
+  
+  local params_menu={
+    {id="hpf",name="hpf",min=10,max=2000,exp=true,div=10,default=10,unit="Hz"},
+    {id="lpf",name="lpf",min=100,max=20000,exp=true,div=100,default=20000,unit="Hz"},
+    {id="res",name="res",min=0.1,max=1,exp=false,div=0.01,default=1.0},
+  }
+  params:add_group("MIXER",#params_menu)
+  for _,pram in ipairs(params_menu) do
+    params:add{
+      type="control",
+      id=pram.id,
+      name=pram.name,
+      controlspec=controlspec.new(pram.min,pram.max,pram.exp and "exp" or "lin",pram.div,pram.default,pram.unit or "",pram.div/(pram.max-pram.min)),
+      formatter=pram.formatter,
+    }
+    params:set_action(pram.id,function(v)
+      engine.mixer_set(pram.id,v)
+    end)
   end
 
   -- setup other parameters

@@ -59,7 +59,12 @@ Engine_EmissionSpectrum : CroneEngine {
 
             snd=snd*SelectX.ar(Clip.kr(gating_amt+SinOsc.kr(1/gating_period,phase:Rand(0,3),mul:gating_strength),0,1),[DC.ar(1),(1-EnvGen.ar(Env.new([0,1,1,0],[0.01,Latch.kr(gating,gating>0)/64,0.01],\sine),Trig.kr(gating>0,0.01)))]);
 
-            Out.ar(out,snd.tanh*amp);
+            snd = snd.tanh*amp;
+            
+            snd = RLPF.ar(snd,\lpf.kr(20000),\res.kr(1.0));
+            snd = HPF.ar(snd,\hpf.kr(10));
+
+            Out.ar(out,snd);
         }).add;
         
         SynthDef("buffer",{
