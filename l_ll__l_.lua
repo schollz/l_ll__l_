@@ -152,6 +152,9 @@ function init()
   
   clock.run(function()
     params:set("clock_tempo",90)
+    params:set("loop",6)
+    params:set("crow_1_sector",3)
+    params:set("3end",48)
     for i=1,90 do
       clock.sleep(1)
       params:set("gating_strength",util.dbamp(-12-90+i))
@@ -160,7 +163,6 @@ function init()
       params:set("loop",-6-90+i)
     end
 
-    params:set("crow_1_sector",4)
     
     -- -- play notes
     -- cae
