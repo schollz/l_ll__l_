@@ -151,10 +151,12 @@ function init()
   end
   
   clock.run(function()
+    params:set("compressor",0)
     params:set("clock_tempo",90)
     params:set("loop",6)
     params:set("crow_1_sector",3)
     params:set("3end",48)
+    params:set("lpf",1500)
     for i=1,90 do
       clock.sleep(1)
       params:set("gating_strength",util.dbamp(-12-90+i))
@@ -169,6 +171,7 @@ function init()
     -- bge
     -- afc afd
     -- gdb
+    params:set("lpf",6000)
     while true do
       local notes={60,69,76}
       if math.random()<0.5 then 

@@ -61,7 +61,7 @@ Engine_EmissionSpectrum : CroneEngine {
 
             snd = snd.tanh*amp;
             
-            snd = RLPF.ar(snd,\lpf.kr(20000),\res.kr(1.0));
+            snd = RLPF.ar(snd,Lag.kr(\lpf.kr(20000),30),\res.kr(1.0));
             snd = HPF.ar(snd,\hpf.kr(10));
 
             Out.ar(out,snd);
